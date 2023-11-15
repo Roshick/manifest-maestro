@@ -1,0 +1,22 @@
+GET tools/helm/charts/git-repo/${url}
+GET tools/helm/charts/helm-repo/${url}
+
+GET sources/git/repositories => return cached git repositories
+GET sources/git/repositories/${url} => return cached git repository
+POST sources/git/repositories/${url}/actions/render-helm =>
+POST
+
+POST caches/helm-chart-repository/actions/clear
+POST caches/helm-chart-repository/actions/refresh
+POST caches/helm-chart/actions/clear
+POST caches/git-repository/actions/clear
+
+GET /rest/api/v1/tools/helm/sources/git-repository/${url}?at=ref&subPath=chart => returns helm chart representation
+POST /rest/api/v1/tools/helm/sources/git-repository/${url}/actions/render?at=ref&subPath=chart  => renders
+
+GET /rest/api/v1/tools/helm/sources/chart-repository/${url} => returns index
+GET /rest/api/v1/tools/helm/sources/chart-repository/${url}/charts/${name} => returns helm chart representation
+POST /rest/api/v1/tools/helm/sources/chart-repository/${url}/charts/${name}/actions/render?version=v0.1.0
+
+/rest/api/v1/tools/kustomize/sources/git-repository/actions/render
+

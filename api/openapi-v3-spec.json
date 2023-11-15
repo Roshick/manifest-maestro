@@ -1,0 +1,649 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Manifest Maestro",
+    "description": "Renders Kubernetes manifests with the help of various tools such as Helm and Kustomize.",
+    "contact": {
+      "name": "Elias R.",
+      "url": "https://github.com/Roshick",
+      "email": "e.rieb@posteo.de"
+    },
+    "license": {
+      "name": "Copyright (c) 2023 Elias R.",
+      "url": "https://github.com/Roshick"
+    },
+    "version": "v1"
+  },
+  "tags": [
+    {
+      "name": "Helm"
+    },
+    {
+      "name": "Kustomize"
+    },
+    {
+      "name": "Management"
+    }
+  ],
+  "paths": {
+    "/rest/api/v1/tools/helm/caches/index/actions/refresh": {
+      "post": {
+        "tags": [
+          "Helm"
+        ],
+        "summary": "Refresh cached repository indexes",
+        "description": "Refreshes all cached chart-repository indexes.",
+        "operationId": "postRefreshHelmIndexCacheAction",
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream failed to respond",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/api/v1/tools/helm/sources/git-repository/actions/render": {
+      "post": {
+        "tags": [
+          "Helm"
+        ],
+        "summary": "Render manifests from Git repository via Helm",
+        "description": "Renders Kubernetes manifests based on a Helm Chart provided in a Git repository.\n\nService needs read permission on given Git repository.",
+        "operationId": "postRenderHelmFromGitRepositoryAction",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include-metadata",
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderManifestsViaHelmFromGitRepositoryAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderManifestsViaHelmActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Repository is in an unprocessable state",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream failed to respond",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/api/v1/tools/helm/sources/chart-repository/actions/render": {
+      "post": {
+        "tags": [
+          "Helm"
+        ],
+        "summary": "Render manifests from Chart repository via Helm",
+        "description": "Renders Kubernetes manifests based on a Helm Chart provided in a Chart repository.",
+        "operationId": "postRenderHelmFromChartRepositoryAction",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include-metadata",
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderManifestsViaHelmFromChartRepositoryAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderManifestsViaHelmActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream failed to respond",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/api/v1/tools/kustomize/sources/git-repository/actions/render": {
+      "post": {
+        "tags": [
+          "Kustomize"
+        ],
+        "summary": "Render manifests from Git repository via Kustomize",
+        "description": "Renders Kubernetes manifests based on Kustomize configuration provided in a Git repository.\n\nService needs read permission on given Git repository.",
+        "operationId": "postRenderKustomizeFromGitRepositoryAction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderManifestsViaKustomizeFromGitRepositoryAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderManifestsViaKustomizeActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream failed to respond",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Management"
+        ],
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthComponent"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RenderManifestsViaHelmFromGitRepositoryAction": {
+        "type": "object",
+        "required": [
+          "gitSource"
+        ],
+        "properties": {
+          "gitSource": {
+            "$ref": "#/components/schemas/GitSource"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/HelmRenderParameters"
+          }
+        }
+      },
+      "RenderManifestsViaHelmFromChartRepositoryAction": {
+        "type": "object",
+        "required": [
+          "chartReference"
+        ],
+        "properties": {
+          "chartReference": {
+            "$ref": "#/components/schemas/ChartReference"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/HelmRenderParameters"
+          }
+        }
+      },
+      "RenderManifestsViaKustomizeFromGitRepositoryAction": {
+        "type": "object",
+        "required": [
+          "gitSource"
+        ],
+        "properties": {
+          "gitSource": {
+            "$ref": "#/components/schemas/GitSource"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/KustomizeRenderParameters"
+          }
+        }
+      },
+      "RenderManifestsViaHelmActionResponse": {
+        "type": "object",
+        "properties": {
+          "manifests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HelmManifest"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/HelmRenderMetadata"
+          }
+        }
+      },
+      "RenderManifestsViaKustomizeActionResponse": {
+        "type": "object",
+        "properties": {
+          "manifests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Manifest"
+            }
+          }
+        }
+      },
+      "Manifest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "object"
+          }
+        }
+      },
+      "HelmManifest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Manifest"
+          },
+          {
+            "type": "object",
+            "required": [
+              "source"
+            ],
+            "properties": {
+              "source": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "HelmRenderMetadata": {
+        "type": "object",
+        "required": [
+          "releaseName",
+          "namespace",
+          "apiVersions",
+          "kubeVersion",
+          "helmVersion",
+          "mergedValues"
+        ],
+        "properties": {
+          "releaseName": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "apiVersions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kubeVersion": {
+            "type": "string"
+          },
+          "helmVersion": {
+            "type": "string"
+          },
+          "mergedValues": {
+            "type": "object"
+          }
+        }
+      },
+      "ChartReference": {
+        "type": "object",
+        "required": [
+          "repositoryURL",
+          "name"
+        ],
+        "properties": {
+          "repositoryURL": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "GitSource": {
+        "type": "object",
+        "required": [
+          "url",
+          "reference"
+        ],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "subPath": {
+            "type": "string"
+          }
+        }
+      },
+      "HelmRenderParameters": {
+        "type": "object",
+        "properties": {
+          "releaseName": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "kubeVersion": {
+            "type": "string"
+          },
+          "apiVersions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "valueFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "values": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "valuesFlat": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stringValues": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "stringValuesFlat": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "complexValues": {
+            "type": "object"
+          },
+          "includeCRDs": {
+            "type": "boolean"
+          },
+          "ignoreMissingValueFiles": {
+            "type": "boolean"
+          },
+          "dependencyPatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HelmChartDependencyPatch"
+            }
+          }
+        }
+      },
+      "HelmChartDependencyPatch": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/components/schemas/HelmChartDependencyPatchTarget"
+          },
+          "values": {
+            "$ref": "#/components/schemas/HelmChartDependencyPatchValue"
+          }
+        }
+      },
+      "HelmChartDependencyPatchTarget": {
+        "type": "object",
+        "properties": {
+          "repositoryURL": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          }
+        }
+      },
+      "HelmChartDependencyPatchValue": {
+        "type": "object",
+        "properties": {
+          "repositoryURL": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "KustomizeRenderParameters": {
+        "type": "object",
+        "properties": {
+          "manifestInjections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KustomizeManifestInjection"
+            }
+          }
+        }
+      },
+      "KustomizeManifestInjection": {
+        "type": "object",
+        "required": [
+          "fileName",
+          "manifests"
+        ],
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "manifests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Manifest"
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "details": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HealthComponent": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+APPLICATION_NAME: manifest-maestro
+
+LOG_STYLE: PLAIN
+
+WORKING_DIRECTORY: /tmp/manifest-maestro/workdir
+
+VAULT_ENABLED: false
+
+LOG_ATTRIBUTE_KEY_MAPPINGS: >-
+  {
+    "service-name": "service.name"
+  }
