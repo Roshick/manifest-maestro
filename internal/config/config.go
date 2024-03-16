@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/Roshick/manifest-maestro/pkg/go-autumn-vault/pkg/vault"
+	"github.com/Roshick/go-autumn-vault/pkg/vault"
 )
 
 const (
@@ -11,28 +11,28 @@ const (
 	ExitCodeRunFailed     = 30
 )
 
-func New() *Impl {
-	return &Impl{
+func New() *Config {
+	return &Config{
 		vBootstrap:   NewBootstrapConfig(),
 		vVault:       vault.NewDefaultConfig(),
 		vApplication: NewApplicationConfig(),
 	}
 }
 
-type Impl struct {
+type Config struct {
 	vBootstrap   *BootstrapConfig
 	vVault       *vault.DefaultConfigImpl
 	vApplication *ApplicationConfig
 }
 
-func (c *Impl) Bootstrap() *BootstrapConfig {
+func (c *Config) Bootstrap() *BootstrapConfig {
 	return c.vBootstrap
 }
 
-func (c *Impl) Vault() *vault.DefaultConfigImpl {
+func (c *Config) Vault() *vault.DefaultConfigImpl {
 	return c.vVault
 }
 
-func (c *Impl) Application() *ApplicationConfig {
+func (c *Config) Application() *ApplicationConfig {
 	return c.vApplication
 }

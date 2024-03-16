@@ -17,17 +17,17 @@ func New() *Kustomize {
 	return &Kustomize{}
 }
 
-func (s *Kustomize) Render(
+func (k *Kustomize) Render(
 	_ context.Context, fileSystem *filesystem.FileSystem, targetPath string, parameters *apimodel.KustomizeRenderParameters,
 ) ([]apimodel.Manifest, error) {
-	k := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
+	kustomizer := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
 
 	for _, injection := range parameters.ManifestInjections {
 		if injection.FileName == "" {
 			return nil, fmt.Errorf("ToDo: filename cannot be empty")
 		}
 		if strings.Contains(injection.FileName, fileSystem.Separator) {
-			return nil, fmt.Errorf("ToDo: filename cannot contain %s", fileSystem.Separator)
+			return nil, fmt.Errorf("ToDo: filename cannot contain %k", fileSystem.Separator)
 		}
 
 		yamlDocs := make([]string, 0)
@@ -45,7 +45,7 @@ func (s *Kustomize) Render(
 		}
 	}
 
-	manifests, err := k.Run(fileSystem, targetPath)
+	manifests, err := kustomizer.Run(fileSystem, targetPath)
 	if err != nil {
 		// ToDo: customize errors
 		err = fmt.Errorf("ToDo: %w", err)

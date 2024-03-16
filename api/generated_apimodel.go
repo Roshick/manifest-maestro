@@ -17,18 +17,20 @@ type ChartReference struct {
 }
 
 type Error struct {
-    Details *string `yaml:"details,omitempty" json:"details,omitempty"`
-    Message *string `yaml:"message,omitempty" json:"message,omitempty"`
-    Timestamp *time.Time `yaml:"timestamp,omitempty" json:"timestamp,omitempty"`
+    Type *string `yaml:"type,omitempty" json:"type,omitempty"`
+    Title *string `yaml:"title,omitempty" json:"title,omitempty"`
+    Status *float32 `yaml:"status,omitempty" json:"status,omitempty"`
+    Detail *string `yaml:"detail,omitempty" json:"detail,omitempty"`
+    Instance *string `yaml:"instance,omitempty" json:"instance,omitempty"`
 }
 
 type GitSource struct {
     Url string `yaml:"url" json:"url"`
     Reference string `yaml:"reference" json:"reference"`
-    SubPath *string `yaml:"subPath,omitempty" json:"subPath,omitempty"`
+    Path string `yaml:"path" json:"path"`
 }
 
-type HealthComponent struct {
+type Health struct {
     Description *string `yaml:"description,omitempty" json:"description,omitempty"`
     Status *string `yaml:"status,omitempty" json:"status,omitempty"`
 }
@@ -48,6 +50,12 @@ type HelmChartDependencyPatchTarget struct {
 type HelmChartDependencyPatchValue struct {
     RepositoryURL *string `yaml:"repositoryURL,omitempty" json:"repositoryURL,omitempty"`
     Version *string `yaml:"version,omitempty" json:"version,omitempty"`
+}
+
+type HelmChartRemoteGitValueFile struct {
+    Url string `yaml:"url" json:"url"`
+    Reference string `yaml:"reference" json:"reference"`
+    Path string `yaml:"path" json:"path"`
 }
 
 type HelmManifest struct {
@@ -70,6 +78,7 @@ type HelmRenderParameters struct {
     KubeVersion *string `yaml:"kubeVersion,omitempty" json:"kubeVersion,omitempty"`
     ApiVersions []string `yaml:"apiVersions,omitempty" json:"apiVersions,omitempty"`
     ValueFiles []string `yaml:"valueFiles,omitempty" json:"valueFiles,omitempty"`
+    RemoteGitValueFiles []HelmChartRemoteGitValueFile `yaml:"remoteGitValueFiles,omitempty" json:"remoteGitValueFiles,omitempty"`
     Values *map[string]string `yaml:"values,omitempty" json:"values,omitempty"`
     ValuesFlat []string `yaml:"valuesFlat,omitempty" json:"valuesFlat,omitempty"`
     StringValues *map[string]string `yaml:"stringValues,omitempty" json:"stringValues,omitempty"`
@@ -99,12 +108,10 @@ type RenderManifestsViaHelmActionResponse struct {
 }
 
 type RenderManifestsViaHelmFromChartRepositoryAction struct {
-    ChartReference ChartReference `yaml:"chartReference" json:"chartReference"`
     Parameters *HelmRenderParameters `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
 type RenderManifestsViaHelmFromGitRepositoryAction struct {
-    GitSource GitSource `yaml:"gitSource" json:"gitSource"`
     Parameters *HelmRenderParameters `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
@@ -113,7 +120,6 @@ type RenderManifestsViaKustomizeActionResponse struct {
 }
 
 type RenderManifestsViaKustomizeFromGitRepositoryAction struct {
-    GitSource GitSource `yaml:"gitSource" json:"gitSource"`
     Parameters *KustomizeRenderParameters `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 

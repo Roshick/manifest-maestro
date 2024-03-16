@@ -7,25 +7,28 @@ import (
 	"os"
 	"time"
 
+	"github.com/Roshick/manifest-maestro/internal/service/gitmanager"
+	healthcontroller "github.com/Roshick/manifest-maestro/internal/web/controller/health"
+	metricscontroller "github.com/Roshick/manifest-maestro/internal/web/controller/metrics"
+	swaggercontroller "github.com/Roshick/manifest-maestro/internal/web/controller/swagger"
+	v1controller "github.com/Roshick/manifest-maestro/internal/web/controller/v1"
+	"github.com/go-git/go-git/v5/plumbing"
+
 	"github.com/Roshick/go-autumn-configloader/pkg/configloader"
 	"github.com/Roshick/go-autumn-slog/pkg/logging"
 	"github.com/Roshick/go-autumn-synchronisation/pkg/cache"
+	"github.com/Roshick/go-autumn-vault/pkg/vault"
 	"github.com/Roshick/manifest-maestro/internal/repository/clock"
 	augit "github.com/Roshick/manifest-maestro/internal/repository/git"
 	"github.com/Roshick/manifest-maestro/internal/repository/helmremote"
 	"github.com/Roshick/manifest-maestro/internal/service/helm"
 	"github.com/Roshick/manifest-maestro/internal/service/kustomize"
 	"github.com/Roshick/manifest-maestro/internal/service/manifestrenderer"
-	"github.com/Roshick/manifest-maestro/pkg/go-autumn-vault/pkg/vault"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
 	"github.com/go-git/go-git/v5"
 
 	"github.com/Roshick/manifest-maestro/internal/config"
 	"github.com/Roshick/manifest-maestro/internal/web"
-	"github.com/Roshick/manifest-maestro/internal/web/controller"
-	libcontroller "github.com/StephanHCB/go-backend-service-common/acorns/controller"
-	"github.com/StephanHCB/go-backend-service-common/web/controller/healthctl"
-	"github.com/StephanHCB/go-backend-service-common/web/controller/swaggerctl"
 )
 
 var (
@@ -37,6 +40,8 @@ type Clock interface {
 }
 
 type Git interface {
+	FetchReferences(context.Context, string) ([]*plumbing.Reference, error)
+
 	CloneCommit(context.Context, string, string) (*git.Repository, error)
 }
 
@@ -47,12 +52,12 @@ type HelmRemote interface {
 }
 
 type Application struct {
+	// bootstrap
 	ConfigLoader *configloader.ConfigLoader
 	Logger       *slog.Logger
-	Config       *config.Impl
-	// configuration (relevant to all other layers)
-	VaultClient vault.Client
-	Vault       *vault.Vault
+	Config       *config.Config
+	VaultClient  vault.Client
+	Vault        *vault.Vault
 
 	// repositories (outgoing connectors)
 	Clock      Clock
@@ -60,15 +65,18 @@ type Application struct {
 	HelmRemote HelmRemote
 
 	// services (business logic)
+	GitManager       *gitmanager.GitManager
 	Helm             *helm.Helm
 	Kustomize        *kustomize.Kustomize
 	ManifestRenderer *manifestrenderer.ManifestRenderer
 
 	// web stack
 	// controllers (incoming connectors)
-	Health  libcontroller.HealthController
-	Swagger libcontroller.SwaggerController
-	V1      *controller.V1
+	HealthController  *healthcontroller.Controller
+	SwaggerController *swaggercontroller.Controller
+	MetricsController *metricscontroller.Controller
+	V1Controller      *v1controller.Controller
+
 	// server
 	Server *web.Server
 }
@@ -111,6 +119,9 @@ func (a *Application) Create(ctx context.Context) error {
 	}
 
 	// services (business logic)
+	if err := a.createGitManager(ctx); err != nil {
+		return fmt.Errorf("failed to set up git manager: %w", err)
+	}
 	if err := a.createHelm(ctx); err != nil {
 		return fmt.Errorf("failed to set up helm: %w", err)
 	}
@@ -122,17 +133,20 @@ func (a *Application) Create(ctx context.Context) error {
 	}
 
 	// web stack
-	if err := a.createHealth(ctx); err != nil {
+	if err := a.createHealthController(ctx); err != nil {
 		return fmt.Errorf("failed to set up health controller: %w", err)
 	}
-	if err := a.createSwagger(ctx); err != nil {
-		return fmt.Errorf("failed to set up health controller: %w", err)
+	if err := a.createSwaggerController(ctx); err != nil {
+		return fmt.Errorf("failed to set up swagger controller: %w", err)
 	}
-	if err := a.createV1(ctx); err != nil {
+	if err := a.createMetricsController(ctx); err != nil {
+		return fmt.Errorf("failed to set up metrics controller: %w", err)
+	}
+	if err := a.createV1Controller(ctx); err != nil {
 		return fmt.Errorf("failed to set up v1 controller: %w", err)
 	}
 	if err := a.createServer(ctx); err != nil {
-		return fmt.Errorf("failed to set up server controller: %w", err)
+		return fmt.Errorf("failed to set up server: %w", err)
 	}
 	return nil
 }
@@ -260,6 +274,17 @@ func (a *Application) createHelmRemote(_ context.Context) error {
 	return nil
 }
 
+func (a *Application) createGitManager(ctx context.Context) error {
+	if a.GitManager == nil {
+		gitRepositoryCache, err := a.createByteSliceCache(ctx, "git-repository")
+		if err != nil {
+			return err
+		}
+		a.GitManager = gitmanager.New(a.Git, gitRepositoryCache)
+	}
+	return nil
+}
+
 func (a *Application) createHelm(ctx context.Context) error {
 	if a.Helm == nil {
 		indexCache, err := a.createByteSliceCache(ctx, "helm-repository-index")
@@ -270,7 +295,7 @@ func (a *Application) createHelm(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		a.Helm = helm.New(a.Config.Application(), a.HelmRemote, indexCache, chartCache)
+		a.Helm = helm.New(a.Config.Application(), a.HelmRemote, a.GitManager, indexCache, chartCache)
 	}
 	return nil
 }
@@ -282,41 +307,44 @@ func (a *Application) createKustomize(_ context.Context) error {
 	return nil
 }
 
-func (a *Application) createManifestRenderer(ctx context.Context) error {
+func (a *Application) createManifestRenderer(_ context.Context) error {
 	if a.ManifestRenderer == nil {
-		gitRepositoryCache, err := a.createByteSliceCache(ctx, "git-repository")
-		if err != nil {
-			return err
-		}
-		a.ManifestRenderer = manifestrenderer.New(a.Config.Application(), a.Git, a.Helm, a.Kustomize, gitRepositoryCache)
+		a.ManifestRenderer = manifestrenderer.New(a.Config.Application(), a.GitManager, a.Helm, a.Kustomize)
 	}
 	return nil
 }
 
-func (a *Application) createHealth(_ context.Context) error {
-	if a.Health == nil {
-		a.Health = healthctl.NewNoAcorn()
+func (a *Application) createHealthController(_ context.Context) error {
+	if a.HealthController == nil {
+		a.HealthController = healthcontroller.New()
 	}
 	return nil
 }
 
-func (a *Application) createSwagger(_ context.Context) error {
-	if a.Swagger == nil {
-		a.Swagger = swaggerctl.NewNoAcorn()
+func (a *Application) createSwaggerController(_ context.Context) error {
+	if a.SwaggerController == nil {
+		a.SwaggerController = swaggercontroller.New()
 	}
 	return nil
 }
 
-func (a *Application) createV1(_ context.Context) error {
-	if a.V1 == nil {
-		a.V1 = controller.NewV1(a.Clock, a.Helm, a.ManifestRenderer)
+func (a *Application) createMetricsController(_ context.Context) error {
+	if a.MetricsController == nil {
+		a.MetricsController = metricscontroller.New()
+	}
+	return nil
+}
+
+func (a *Application) createV1Controller(_ context.Context) error {
+	if a.V1Controller == nil {
+		a.V1Controller = v1controller.New(a.Clock, a.Helm, a.ManifestRenderer)
 	}
 	return nil
 }
 
 func (a *Application) createServer(ctx context.Context) error {
 	if a.Server == nil {
-		server, err := web.NewServer(ctx, a.Config.Application(), a.Health, a.Swagger, a.V1)
+		server, err := web.NewServer(ctx, a.Config.Application(), a.HealthController, a.SwaggerController, a.MetricsController, a.V1Controller)
 		if err != nil {
 			return err
 		}

@@ -34,6 +34,17 @@ func New(configuration *config.ApplicationConfig) (*Git, error) {
 	}, nil
 }
 
+func (r *Git) FetchReferences(_ context.Context, repoURL string) ([]*plumbing.Reference, error) {
+	rem := git.NewRemote(memory.NewStorage(), &gitConfig.RemoteConfig{
+		Name: "origin",
+		URLs: []string{repoURL},
+	})
+
+	return rem.List(&git.ListOptions{
+		Auth: r.sshAuth,
+	})
+}
+
 func (r *Git) CloneCommit(_ context.Context, gitURL string, gitReferenceOrHash string) (*git.Repository, error) {
 	repo, err := git.Init(memory.NewStorage(), memfs.New())
 	if err != nil {

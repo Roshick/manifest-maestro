@@ -6,8 +6,6 @@ import (
 
 	"helm.sh/helm/v3/pkg/getter"
 
-	"helm.sh/helm/v3/pkg/chartutil"
-
 	"github.com/Roshick/manifest-maestro/pkg/utils/stringutils"
 	auconfigapi "github.com/StephanHCB/go-autumn-config-api"
 )
@@ -17,7 +15,6 @@ const (
 
 	keyServerAddress     = "SERVER_ADDRESS"
 	keyServerPrimaryPort = "SERVER_PRIMARY_PORT"
-	keyServerMetricsPort = "SERVER_METRICS_PORT"
 
 	keySSHPrivateKey         = "SSH_PRIVATE_KEY"
 	keySSHPrivateKeyPassword = "SSH_PRIVATE_KEY_PASSWORD"
@@ -50,7 +47,6 @@ type ApplicationConfig struct {
 	vSSHPrivateKeyPassword string
 
 	vHelmDefaultReleaseName           string
-	vHelmDefaultKubernetesVersion     *chartutil.KubeVersion
 	vHelmDefaultKubernetesAPIVersions []string
 	vHelmDefaultKubernetesNamespace   string
 
@@ -73,10 +69,6 @@ func (c *ApplicationConfig) ServerAddress() string {
 
 func (c *ApplicationConfig) ServerPrimaryPort() uint {
 	return c.vServerPrimaryPort
-}
-
-func (c *ApplicationConfig) ServerMetricsPort() uint {
-	return c.vServerMetricsPort
 }
 
 func (c *ApplicationConfig) SSHPrivateKey() string {
@@ -141,12 +133,6 @@ func (c *ApplicationConfig) ConfigItems() []auconfigapi.ConfigItem {
 			Default:     "8080",
 		},
 		{
-			Key:         keyServerMetricsPort,
-			EnvName:     keyServerMetricsPort,
-			Description: "Port used by the metrics server.",
-			Default:     "9090",
-		},
-		{
 			Key:         keySSHPrivateKey,
 			EnvName:     keySSHPrivateKey,
 			Description: "SSH private key used to access git repositories. Requires read permissions.",
@@ -206,11 +192,6 @@ func (c *ApplicationConfig) ObtainValues(getter func(string) string) error {
 		return err
 	}
 	c.vServerPrimaryPort = vServerPrimaryPort
-	vServerMetricsPort, err := parseUint(getter(keyServerMetricsPort))
-	if err != nil {
-		return err
-	}
-	c.vServerMetricsPort = vServerMetricsPort
 
 	c.vSSHPrivateKey = getter(keySSHPrivateKey)
 	c.vSSHPrivateKeyPassword = getter(keySSHPrivateKeyPassword)

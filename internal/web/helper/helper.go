@@ -5,37 +5,32 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	apimodel "github.com/Roshick/manifest-maestro/api"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
-	"github.com/StephanHCB/go-backend-service-common/web/util/media"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-http-utils/headers"
 	"gopkg.in/yaml.v3"
 )
 
-func BooleanQueryParam(r *http.Request, key string, defaultValue bool) (bool, error) {
-	query := r.URL.Query()
-	value := query.Get(key)
-	if value == "" {
-		return defaultValue, nil
-	}
-	return strconv.ParseBool(query.Get(key))
-}
+const (
+	ContentTypeApplicationJSON = "application/json"
+	ContentTypeApplicationYAML = "application/x-yaml"
+)
 
-// --- success ---
-
-const ContentTypeApplicationYaml = "application/x-yaml"
+// --- success handlers ---
 
 func Success(ctx context.Context, w http.ResponseWriter, r *http.Request, response any) {
 	acceptEncodingHeader := r.Header.Get(headers.Accept)
-	if strings.Contains(acceptEncodingHeader, ContentTypeApplicationYaml) {
-		w.Header().Set(headers.ContentType, ContentTypeApplicationYaml)
+	if strings.Contains(acceptEncodingHeader, ContentTypeApplicationYAML) {
+		w.Header().Set(headers.ContentType, ContentTypeApplicationYAML)
 		WriteYAML(ctx, w, response)
 	} else {
-		w.Header().Set(headers.ContentType, media.ContentTypeApplicationJson)
+		w.Header().Set(headers.ContentType, ContentTypeApplicationJSON)
 		WriteJSON(ctx, w, response)
 	}
 }
@@ -50,17 +45,6 @@ func HandleError(ctx context.Context, w http.ResponseWriter, r *http.Request, er
 	UnexpectedErrorHandler(ctx, w, r, err.Error(), timeStamp)
 }
 
-func NotFoundErrorHandler(
-	ctx context.Context,
-	w http.ResponseWriter,
-	r *http.Request,
-	logMessage string,
-	timeStamp time.Time,
-) {
-	aulogging.Logger.Ctx(ctx).Info().Printf("not found: %s", logMessage)
-	errorHandler(ctx, w, r, "notfound", http.StatusNotFound, logMessage, timeStamp)
-}
-
 func BadRequestErrorHandler(
 	ctx context.Context,
 	w http.ResponseWriter,
@@ -70,40 +54,6 @@ func BadRequestErrorHandler(
 ) {
 	aulogging.Logger.Ctx(ctx).Info().Printf("bad request: %s", logMessage)
 	errorHandler(ctx, w, r, "input.invalid", http.StatusBadRequest, logMessage, timeStamp)
-}
-
-func ConflictErrorhandler(
-	ctx context.Context,
-	w http.ResponseWriter,
-	r *http.Request,
-	logMessage string,
-	timeStamp time.Time,
-) {
-	aulogging.Logger.Ctx(ctx).Info().Printf("conflict: %s", logMessage)
-	errorHandler(ctx, w, r, "conflict", http.StatusConflict, logMessage, timeStamp)
-}
-
-func UnprocessableEntityErrorHandler(
-	ctx context.Context,
-	w http.ResponseWriter,
-	r *http.Request,
-	logMessage string,
-	timeStamp time.Time,
-) {
-	aulogging.Logger.Ctx(ctx).Info().Printf("unprocessable entity: %s", logMessage)
-	errorHandler(ctx, w, r, "deployment-repository.invalid", http.StatusUnprocessableEntity, logMessage, timeStamp)
-}
-
-func BadGatewayErrorHandler(
-	ctx context.Context,
-	w http.ResponseWriter,
-	r *http.Request,
-	logMessage string,
-	timeStamp time.Time,
-) {
-	aulogging.Logger.Ctx(ctx).Warn().Printf("bad gateway: %s", logMessage)
-	errorHandler(ctx, w, r, "downstream.unavailable", http.StatusBadGateway,
-		"a downstream web is currently unavailable or failed to service the request", timeStamp)
 }
 
 func UnexpectedErrorHandler(
@@ -126,21 +76,36 @@ func errorHandler(
 	details string,
 	timestamp time.Time,
 ) {
-	detailsPtr := &details
-	if details == "" {
-		detailsPtr = nil
-	}
-	response := &apimodel.Error{
-		Details:   detailsPtr,
-		Message:   &msg,
-		Timestamp: &timestamp,
-	}
-	w.Header().Set(headers.ContentType, media.ContentTypeApplicationJson)
+	response := &apimodel.Error{}
+	w.Header().Set(headers.ContentType, ContentTypeApplicationJSON)
 	w.WriteHeader(status)
 	WriteJSON(ctx, w, response)
 }
 
 // --- helpers
+
+func StringPathParam(r *http.Request, key string) (string, error) {
+	value := chi.URLParam(r, key)
+	return url.PathUnescape(value)
+}
+
+func StringQueryParam(r *http.Request, key string, defaultValue string) (string, error) {
+	query := r.URL.Query()
+	value := query.Get(key)
+	if value == "" {
+		return defaultValue, nil
+	}
+	return url.QueryUnescape(value)
+}
+
+func BooleanQueryParam(r *http.Request, key string, defaultValue bool) (bool, error) {
+	query := r.URL.Query()
+	value := query.Get(key)
+	if value == "" {
+		return defaultValue, nil
+	}
+	return strconv.ParseBool(query.Get(key))
+}
 
 func WriteJSON(ctx context.Context, w http.ResponseWriter, v any) {
 	encoder := json.NewEncoder(w)

@@ -6,20 +6,21 @@ import (
 	"sigs.k8s.io/kustomize/api/filesys"
 )
 
-func (*FileSystem) SkipDir() error {
+func (f *FileSystem) SkipDir() error {
 	return filepath.SkipDir
 }
 
-func (*FileSystem) Dir(path string) string {
+func (f *FileSystem) Dir(path string) string {
 	return filepath.Dir(path)
 }
 
-func (*FileSystem) Join(elem ...string) string {
+func (f *FileSystem) Join(elem ...string) string {
 	return filepath.Join(elem...)
 }
 
-func (*FileSystem) IsAbs(path string) bool {
-	return len(path) > 0 && path[0] == filepath.Separator
+func (f *FileSystem) IsAbs(path string) bool {
+	cleanPath := filepath.Clean(path)
+	return len(cleanPath) > 0 && string(cleanPath[0]) == f.Root
 }
 
 func New() *FileSystem {

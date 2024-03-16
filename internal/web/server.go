@@ -9,29 +9,26 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Roshick/manifest-maestro/internal/config"
-	"github.com/Roshick/manifest-maestro/internal/web/controller"
-	"github.com/Roshick/manifest-maestro/internal/web/middleware"
-	auapmmiddleware "github.com/StephanHCB/go-autumn-restclient-apm/implementation/middleware"
-	"github.com/StephanHCB/go-backend-service-common/web/middleware/cancellogger"
-	"github.com/StephanHCB/go-backend-service-common/web/middleware/corsheader"
-	"github.com/StephanHCB/go-backend-service-common/web/middleware/recoverer"
-	"github.com/StephanHCB/go-backend-service-common/web/middleware/requestid"
-	"github.com/StephanHCB/go-backend-service-common/web/middleware/requestidinresponse"
-	"github.com/StephanHCB/go-backend-service-common/web/middleware/requestmetrics"
-	"github.com/StephanHCB/go-backend-service-common/web/middleware/timeout"
+	healthcontroller "github.com/Roshick/manifest-maestro/internal/web/controller/health"
+	metricscontroller "github.com/Roshick/manifest-maestro/internal/web/controller/metrics"
+	swaggercontroller "github.com/Roshick/manifest-maestro/internal/web/controller/swagger"
+	v1controller "github.com/Roshick/manifest-maestro/internal/web/controller/v1"
+	"github.com/google/uuid"
 
+	"github.com/Roshick/manifest-maestro/internal/config"
+	"github.com/Roshick/manifest-maestro/internal/web/middleware"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
-	libcontroller "github.com/StephanHCB/go-backend-service-common/acorns/controller"
+	auapmmiddleware "github.com/StephanHCB/go-autumn-restclient-apm/implementation/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
 	config *config.ApplicationConfig
 
-	health  libcontroller.HealthController
-	swagger libcontroller.SwaggerController
-	v1      *controller.V1
+	healthController  *healthcontroller.Controller
+	swaggerController *swaggercontroller.Controller
+	metricsController *metricscontroller.Controller
+	v1Controller      *v1controller.Controller
 
 	Router chi.Router
 
@@ -40,29 +37,29 @@ type Server struct {
 	ServerWriteTimeoutInSeconds int
 	ServerIdleTimeoutInSeconds  int
 	GracePeriodInSeconds        int
-	RequestTimeoutSeconds       int
 }
 
 func NewServer(
 	ctx context.Context,
 	config *config.ApplicationConfig,
-	health libcontroller.HealthController,
-	swagger libcontroller.SwaggerController,
-	v1 *controller.V1,
+	healthController *healthcontroller.Controller,
+	swaggerController *swaggercontroller.Controller,
+	metricsController *metricscontroller.Controller,
+	v1Controller *v1controller.Controller,
 ) (*Server, error) {
 	server := &Server{
 		config: config,
 
-		health:  health,
-		swagger: swagger,
-		v1:      v1,
+		healthController:  healthController,
+		swaggerController: swaggerController,
+		metricsController: metricsController,
+		v1Controller:      v1Controller,
 
 		RequestTimeoutInSeconds:     60,
 		ServerWriteTimeoutInSeconds: 60,
 		ServerIdleTimeoutInSeconds:  60,
 		ServerReadTimeoutInSeconds:  60,
 		GracePeriodInSeconds:        30,
-		RequestTimeoutSeconds:       60,
 	}
 
 	if err := server.WireUp(ctx); err != nil {
@@ -83,54 +80,85 @@ func (s *Server) WireUp(ctx context.Context) error {
 
 	}
 
-	s.health.WireUp(ctx, s.Router)
-	s.swagger.WireUp(ctx, s.Router)
-	s.v1.WireUp(ctx, s.Router)
+	s.healthController.WireUp(ctx, s.Router)
+	s.swaggerController.WireUp(ctx, s.Router)
+	s.metricsController.WireUp(ctx, s.Router)
+	s.v1Controller.WireUp(ctx, s.Router)
 
 	return nil
 }
 
 func (s *Server) setupMiddlewareStack(_ context.Context) error {
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("Top"))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "Top",
+	}))
 
 	s.Router.Use(middleware.AddLoggerToContext)
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("AddLoggerToContext"))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "AddLoggerToContext",
+	}))
 
-	s.Router.Use(requestid.RequestID)
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("AddRequestIDToContext"))
+	s.Router.Use(middleware.CreateAddRequestIDToContext(middleware.AddRequestIDToContextOptions{
+		RequestIDHeader: "X-Request-ID",
+		RequestIDFunc:   uuid.NewString,
+	}))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "AddRequestIDToContext",
+	}))
 
-	s.Router.Use(requestidinresponse.AddRequestIdHeaderToResponse)
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("AddRequestIDHeaderToResponse"))
+	s.Router.Use(middleware.CreateAddRequestIDToResponseHeader(middleware.AddRequestIDToResponseHeaderOptions{
+		RequestIDHeader: "X-Request-ID",
+	}))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "AddRequestIDToResponseHeader",
+	}))
 
 	s.Router.Use(middleware.AddRequestIDToContextLogger)
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("AddRequestIDToContextLogger"))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "AddRequestIDToContextLogger",
+	}))
 
-	addRequestResponseContextLoggingOptions := middleware.AddRequestResponseContextLoggingOptions{
+	s.Router.Use(middleware.CreateAddRequestResponseContextLogging(middleware.AddRequestResponseContextLoggingOptions{
 		ExcludeLogging: []string{
-			"GET / 200",
-			"GET /health 200",
-			"GET /management/health 200",
+			"GET /health/ready 200",
+			"GET /health/live 200",
+			"GET /metrics 200",
 		},
-	}
-	s.Router.Use(middleware.CreateAddRequestResponseContextLogging(addRequestResponseContextLoggingOptions))
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("AddRequestResponseContextLogging"))
+	}))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "AddRequestResponseContextLogging",
+	}))
 
-	s.Router.Use(recoverer.PanicRecoverer)
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("RecoverPanic"))
+	s.Router.Use(middleware.RecoverPanic)
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "RecoverPanic",
+	}))
 
 	s.Router.Use(auapmmiddleware.AddTraceHeadersToResponse)
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("AddTraceHeadersToResponse"))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "AddTraceHeadersToResponse",
+	}))
 
-	s.Router.Use(corsheader.CorsHandlingWithCorsAllowOrigin("*"))
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("HandleCORS"))
+	s.Router.Use(middleware.CreateHandleCORS(middleware.HandleCORSOptions{
+		AllowOrigin:             "*",
+		AdditionalAllowHeaders:  []string{"X-Request-ID"},
+		AdditionalExposeHeaders: []string{"X-Request-ID"},
+	}))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "HandleCORS",
+	}))
 
-	requestmetrics.Setup()
-	s.Router.Use(requestmetrics.RecordRequestMetrics)
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("RecordRequestMetrics"))
+	s.Router.Use(middleware.CreateRecordRequestMetrics())
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "RecordRequestMetrics",
+	}))
 
-	timeout.RequestTimeoutSeconds = s.RequestTimeoutInSeconds
-	s.Router.Use(timeout.AddRequestTimeout)
-	s.Router.Use(cancellogger.ConstructContextCancellationLoggerMiddleware("AddRequestTimeout"))
+	s.Router.Use(middleware.CreateAddRequestTimeout(middleware.AddRequestTimeoutOptions{
+		RequestTimeoutInSeconds: s.RequestTimeoutInSeconds,
+	}))
+	s.Router.Use(middleware.CreateLogContextCancellation(middleware.LogContextCancellationOptions{
+		Description: "AddRequestTimeout",
+	}))
 
 	return nil
 }
@@ -153,7 +181,6 @@ func (s *Server) Run(ctx context.Context) error {
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 
 	srvPrimary := s.CreatePrimaryServer(ctx)
-	srvMetrics := s.CreateMetricsServer(ctx)
 
 	go func() {
 		<-sig // wait for signal notification
@@ -169,21 +196,10 @@ func (s *Server) Run(ctx context.Context) error {
 			// this is not perfect, but we need to terminate the entire process because we've trapped sigterm
 			os.Exit(config.ExitCodeDirtyShutdown)
 		}
-		if srvMetrics != nil {
-			if err := srvMetrics.Shutdown(tCtx); err != nil {
-				aulogging.Logger.NoCtx().Error().WithErr(err).
-					Printf("failed to shut down metrics http server gracefully within %d seconds: %s", s.GracePeriodInSeconds, err.Error())
-				// this is not perfect, but we need to terminate the entire process because we've trapped sigterm
-				os.Exit(config.ExitCodeDirtyShutdown)
-			}
-		}
 	}()
 
-	if srvMetrics != nil {
-		go s.StartMetricsServer(ctx, srvMetrics)
-	}
 	if err := s.StartPrimaryServer(ctx, srvPrimary); err != nil {
-		aulogging.Logger.Ctx(ctx).Error().WithErr(err).Print("failed to start primary server. BAILING OUT")
+		aulogging.Logger.Ctx(ctx).Fatal().WithErr(err).Print("failed to start primary server")
 		return err
 	}
 

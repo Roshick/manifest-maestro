@@ -22,58 +22,20 @@
       "name": "Kustomize"
     },
     {
+      "name": "Git Repository"
+    },
+    {
+      "name": "Chart Repository"
+    },
+    {
       "name": "Management"
     }
   ],
   "paths": {
-    "/rest/api/v1/tools/helm/caches/index/actions/refresh": {
+    "/rest/api/v1/sources/git-repo/{reposituryURL}/charts/{repositoryPath}/actions/render": {
       "post": {
         "tags": [
-          "Helm"
-        ],
-        "summary": "Refresh cached repository indexes",
-        "description": "Refreshes all cached chart-repository indexes.",
-        "operationId": "postRefreshHelmIndexCacheAction",
-        "responses": {
-          "204": {
-            "description": "Success"
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Upstream failed to respond",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/rest/api/v1/tools/helm/sources/git-repository/actions/render": {
-      "post": {
-        "tags": [
+          "Git Repository",
           "Helm"
         ],
         "summary": "Render manifests from Git repository via Helm",
@@ -81,10 +43,34 @@
         "operationId": "postRenderHelmFromGitRepositoryAction",
         "parameters": [
           {
+            "in": "path",
+            "name": "reposituryURL",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "repositoryPath",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
             "in": "query",
             "name": "include-metadata",
             "schema": {
               "type": "boolean"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "at",
+            "schema": {
+              "type": "string"
             },
             "required": false
           }
@@ -153,15 +139,137 @@
         }
       }
     },
-    "/rest/api/v1/tools/helm/sources/chart-repository/actions/render": {
+    "/rest/api/v1/sources/git-repo/{reposituryURL}/kustomizations/{repositoryPath}/actions/render": {
       "post": {
         "tags": [
+          "Git Repository",
+          "Kustomize"
+        ],
+        "summary": "Render manifests from Git repository via Kustomize",
+        "description": "Renders Kubernetes manifests based on Kustomize configuration provided in a Git repository.\n\nService needs read permission on given Git repository.",
+        "operationId": "postRenderKustomizeFromGitRepositoryAction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reposituryURL",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "repositoryPath",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "include-metadata",
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "at",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderManifestsViaKustomizeFromGitRepositoryAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderManifestsViaKustomizeActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream failed to respond",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/api/v1/sources/chart-repo/{reposituryURL}/charts/{chartName}/actions/render": {
+      "post": {
+        "tags": [
+          "Chart Repository",
           "Helm"
         ],
         "summary": "Render manifests from Chart repository via Helm",
         "description": "Renders Kubernetes manifests based on a Helm Chart provided in a Chart repository.",
         "operationId": "postRenderHelmFromChartRepositoryAction",
         "parameters": [
+          {
+            "in": "path",
+            "name": "reposituryURL",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "chartName",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
           {
             "in": "query",
             "name": "include-metadata",
@@ -225,41 +333,19 @@
         }
       }
     },
-    "/rest/api/v1/tools/kustomize/sources/git-repository/actions/render": {
-      "post": {
+    "/health/ready": {
+      "get": {
         "tags": [
-          "Kustomize"
+          "Management"
         ],
-        "summary": "Render manifests from Git repository via Kustomize",
-        "description": "Renders Kubernetes manifests based on Kustomize configuration provided in a Git repository.\n\nService needs read permission on given Git repository.",
-        "operationId": "postRenderKustomizeFromGitRepositoryAction",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RenderManifestsViaKustomizeFromGitRepositoryAction"
-              }
-            }
-          }
-        },
+        "operationId": "getReadyHealth",
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/RenderManifestsViaKustomizeActionResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Health"
                 }
               }
             }
@@ -273,33 +359,23 @@
                 }
               }
             }
-          },
-          "502": {
-            "description": "Upstream failed to respond",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
           }
         }
       }
     },
-    "/health": {
+    "/health/live": {
       "get": {
         "tags": [
           "Management"
         ],
-        "operationId": "getHealth",
+        "operationId": "getLiveHealth",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthComponent"
+                  "$ref": "#/components/schemas/Health"
                 }
               }
             }
@@ -322,13 +398,7 @@
     "schemas": {
       "RenderManifestsViaHelmFromGitRepositoryAction": {
         "type": "object",
-        "required": [
-          "gitSource"
-        ],
         "properties": {
-          "gitSource": {
-            "$ref": "#/components/schemas/GitSource"
-          },
           "parameters": {
             "$ref": "#/components/schemas/HelmRenderParameters"
           }
@@ -336,13 +406,7 @@
       },
       "RenderManifestsViaHelmFromChartRepositoryAction": {
         "type": "object",
-        "required": [
-          "chartReference"
-        ],
         "properties": {
-          "chartReference": {
-            "$ref": "#/components/schemas/ChartReference"
-          },
           "parameters": {
             "$ref": "#/components/schemas/HelmRenderParameters"
           }
@@ -350,13 +414,7 @@
       },
       "RenderManifestsViaKustomizeFromGitRepositoryAction": {
         "type": "object",
-        "required": [
-          "gitSource"
-        ],
         "properties": {
-          "gitSource": {
-            "$ref": "#/components/schemas/GitSource"
-          },
           "parameters": {
             "$ref": "#/components/schemas/KustomizeRenderParameters"
           }
@@ -450,42 +508,6 @@
           }
         }
       },
-      "ChartReference": {
-        "type": "object",
-        "required": [
-          "repositoryURL",
-          "name"
-        ],
-        "properties": {
-          "repositoryURL": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "version": {
-            "type": "string"
-          }
-        }
-      },
-      "GitSource": {
-        "type": "object",
-        "required": [
-          "url",
-          "reference"
-        ],
-        "properties": {
-          "url": {
-            "type": "string"
-          },
-          "reference": {
-            "type": "string"
-          },
-          "subPath": {
-            "type": "string"
-          }
-        }
-      },
       "HelmRenderParameters": {
         "type": "object",
         "properties": {
@@ -508,6 +530,12 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          },
+          "remoteGitValueFiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HelmChartRemoteGitValueFile"
             }
           },
           "values": {
@@ -549,6 +577,13 @@
             }
           }
         }
+      },
+      "HelmChartRemoteGitValueFile": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GitSource"
+          }
+        ]
       },
       "HelmChartDependencyPatch": {
         "type": "object",
@@ -618,22 +653,64 @@
           }
         }
       },
-      "Error": {
+      "ChartReference": {
         "type": "object",
+        "required": [
+          "repositoryURL",
+          "name"
+        ],
         "properties": {
-          "details": {
+          "repositoryURL": {
             "type": "string"
           },
-          "message": {
+          "name": {
             "type": "string"
           },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
+          "version": {
+            "type": "string"
           }
         }
       },
-      "HealthComponent": {
+      "GitSource": {
+        "type": "object",
+        "required": [
+          "url",
+          "reference",
+          "path"
+        ],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "number"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          }
+        }
+      },
+      "Health": {
         "type": "object",
         "properties": {
           "description": {

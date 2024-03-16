@@ -7,24 +7,27 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/Roshick/go-autumn-synchronisation/pkg/cache"
 	apimodel "github.com/Roshick/manifest-maestro/api"
 	"github.com/Roshick/manifest-maestro/internal/config"
+	"github.com/Roshick/manifest-maestro/internal/service/gitmanager"
 	"github.com/Roshick/manifest-maestro/pkg/utils/commonutils"
 	"github.com/Roshick/manifest-maestro/pkg/utils/filesystem"
 	"github.com/Roshick/manifest-maestro/pkg/utils/maputils"
+	"github.com/Roshick/manifest-maestro/pkg/utils/targz"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/engine"
 	"helm.sh/helm/v3/pkg/ignore"
 	"helm.sh/helm/v3/pkg/releaseutil"
 	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v3/pkg/strvals"
 	"sigs.k8s.io/yaml"
 )
 
@@ -39,6 +42,8 @@ type Helm struct {
 
 	helmRemote Remote
 
+	gitManager *gitmanager.GitManager
+
 	indexCache cache.Cache[[]byte]
 	chartCache cache.Cache[[]byte]
 }
@@ -46,19 +51,21 @@ type Helm struct {
 func New(
 	configuration *config.ApplicationConfig,
 	helmRemote Remote,
+	gitManager *gitmanager.GitManager,
 	indexCache cache.Cache[[]byte],
 	chartCache cache.Cache[[]byte],
 ) *Helm {
 	return &Helm{
 		appConfig:  configuration,
 		helmRemote: helmRemote,
+		gitManager: gitManager,
 		indexCache: indexCache,
 		chartCache: chartCache,
 	}
 }
 
-func (s *Helm) RetrieveIndex(ctx context.Context, repositoryURL string) (*repo.IndexFile, error) {
-	cached, err := s.indexCache.Get(ctx, repositoryURL)
+func (h *Helm) RetrieveIndex(ctx context.Context, repositoryURL string) (*repo.IndexFile, error) {
+	cached, err := h.indexCache.Get(ctx, repositoryURL)
 	if err != nil {
 		return nil, err
 	}
@@ -67,34 +74,34 @@ func (s *Helm) RetrieveIndex(ctx context.Context, repositoryURL string) (*repo.I
 		return parseIndex(*cached)
 	}
 	aulogging.Logger.Ctx(ctx).Info().Printf("cache miss for helm repository index with key '%s', retrieving from remote", repositoryURL)
-	return s.RefreshIndex(ctx, repositoryURL)
+	return h.RefreshIndex(ctx, repositoryURL)
 }
 
-func (s *Helm) RefreshCachedIndexes(ctx context.Context) error {
-	repositoryURLs, err := s.indexCache.Keys(ctx)
+func (h *Helm) RefreshCachedIndexes(ctx context.Context) error {
+	repositoryURLs, err := h.indexCache.Keys(ctx)
 	if err != nil {
 		return err
 	}
-	return s.RefreshIndexes(ctx, repositoryURLs)
+	return h.RefreshIndexes(ctx, repositoryURLs)
 }
 
-func (s *Helm) RefreshIndexes(ctx context.Context, repositoryURLs []string) error {
+func (h *Helm) RefreshIndexes(ctx context.Context, repositoryURLs []string) error {
 	errs := make([]error, 0)
 	for _, repositoryURL := range repositoryURLs {
-		if _, innerErr := s.RefreshIndex(ctx, repositoryURL); innerErr != nil {
+		if _, innerErr := h.RefreshIndex(ctx, repositoryURL); innerErr != nil {
 			errs = append(errs, innerErr)
 		}
 	}
 	return errors.Join(errs...)
 }
 
-func (s *Helm) RefreshIndex(ctx context.Context, repositoryURL string) (*repo.IndexFile, error) {
-	indexBytes, err := s.helmRemote.GetIndex(ctx, repositoryURL)
+func (h *Helm) RefreshIndex(ctx context.Context, repositoryURL string) (*repo.IndexFile, error) {
+	indexBytes, err := h.helmRemote.GetIndex(ctx, repositoryURL)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = s.indexCache.Set(ctx, repositoryURL, indexBytes, 10*time.Minute); err != nil {
+	if err = h.indexCache.Set(ctx, repositoryURL, indexBytes, 10*time.Minute); err != nil {
 		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("failed to cache helm repository index with key '%s'", repositoryURL)
 	} else {
 		aulogging.Logger.Ctx(ctx).Info().Printf("successfully cached helm repository index with key '%s'", repositoryURL)
@@ -103,8 +110,8 @@ func (s *Helm) RefreshIndex(ctx context.Context, repositoryURL string) (*repo.In
 	return parseIndex(indexBytes)
 }
 
-func (s *Helm) RetrieveChart(ctx context.Context, chartReference apimodel.ChartReference) ([]byte, error) {
-	index, err := s.RetrieveIndex(ctx, chartReference.RepositoryURL)
+func (h *Helm) RetrieveChart(ctx context.Context, chartReference apimodel.ChartReference) ([]byte, error) {
+	index, err := h.RetrieveIndex(ctx, chartReference.RepositoryURL)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +125,7 @@ func (s *Helm) RetrieveChart(ctx context.Context, chartReference apimodel.ChartR
 	}
 
 	key := chartCacheKey(chartReference.RepositoryURL, chartVersion.Name, chartVersion.Version, chartVersion.Digest)
-	cached, err := s.chartCache.Get(ctx, key)
+	cached, err := h.chartCache.Get(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -127,22 +134,22 @@ func (s *Helm) RetrieveChart(ctx context.Context, chartReference apimodel.ChartR
 		return *cached, nil
 	}
 	aulogging.Logger.Ctx(ctx).Info().Printf("cache miss for helm chart with key '%s', retrieving from remote", key)
-	return s.RefreshChart(ctx, chartReference.RepositoryURL, chartVersion)
+	return h.RefreshChart(ctx, chartReference.RepositoryURL, chartVersion)
 }
 
-func (s *Helm) RefreshChart(ctx context.Context, repositoryURL string, chartVersion *repo.ChartVersion) ([]byte, error) {
+func (h *Helm) RefreshChart(ctx context.Context, repositoryURL string, chartVersion *repo.ChartVersion) ([]byte, error) {
 	chartURL := chartVersion.URLs[0]
 	// no protocol => url is relative
 	if !strings.Contains(chartURL, "://") {
 		chartURL = fmt.Sprintf("%s/%s", repositoryURL, chartURL)
 	}
-	chartBytes, err := s.helmRemote.GetChart(ctx, chartURL)
+	chartBytes, err := h.helmRemote.GetChart(ctx, chartURL)
 	if err != nil {
 		return nil, err
 	}
 
 	key := chartCacheKey(repositoryURL, chartVersion.Name, chartVersion.Version, chartVersion.Digest)
-	if err = s.chartCache.Set(ctx, key, chartBytes, 24*time.Hour); err != nil {
+	if err = h.chartCache.Set(ctx, key, chartBytes, 24*time.Hour); err != nil {
 		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("failed to cache helm chart with key '%s'", key)
 	} else {
 		aulogging.Logger.Ctx(ctx).Info().Printf("successfully cached helm chart with key '%s'", key)
@@ -151,7 +158,7 @@ func (s *Helm) RefreshChart(ctx context.Context, repositoryURL string, chartVers
 	return chartBytes, nil
 }
 
-func (s *Helm) BuildChart(
+func (h *Helm) BuildChart(
 	ctx context.Context, fileSystem *filesystem.FileSystem, targetPath string, parameters apimodel.HelmRenderParameters,
 ) (*chart.Chart, error) {
 	aulogging.Logger.Ctx(ctx).Info().Printf("building chart at %s", targetPath)
@@ -209,7 +216,7 @@ func (s *Helm) BuildChart(
 				continue
 			}
 		}
-		chartBytes, innerErr := s.RetrieveChart(ctx, apimodel.ChartReference{
+		chartBytes, innerErr := h.RetrieveChart(ctx, apimodel.ChartReference{
 			Name:          dependency.Name,
 			RepositoryURL: dependency.Repository,
 			Version:       commonutils.Ptr(dependency.Version),
@@ -227,7 +234,7 @@ func (s *Helm) BuildChart(
 	return helmChart, nil
 }
 
-func (s *Helm) RenderChart(
+func (h *Helm) RenderChart(
 	_ context.Context, helmChart *chart.Chart, allValues map[string]any, parameters apimodel.HelmRenderParameters,
 ) ([]apimodel.HelmManifest, *apimodel.HelmRenderMetadata, error) {
 	if err := chartutil.ProcessDependencies(helmChart, allValues); err != nil {
@@ -240,11 +247,11 @@ func (s *Helm) RenderChart(
 	}
 
 	capabilities := chartutil.DefaultCapabilities.Copy()
-	capabilities.APIVersions = append(capabilities.APIVersions, s.appConfig.HelmDefaultKubernetesAPIVersions()...)
+	capabilities.APIVersions = append(capabilities.APIVersions, h.appConfig.HelmDefaultKubernetesAPIVersions()...)
 	capabilities.APIVersions = append(capabilities.APIVersions, parameters.ApiVersions...)
 	valuesToRender, err := chartutil.ToRenderValues(helmChart, allValues, options, capabilities)
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "values don't meet the specifications of the schema(s)") {
+		if strings.HasPrefix(err.Error(), "values don't meet the specifications of the schema(h)") {
 			return nil, nil, fmt.Errorf("ToDo: VALIDATION ERROR: %w", err)
 		}
 		return nil, nil, fmt.Errorf("ToDo: customize errors: %w", err)
@@ -312,11 +319,11 @@ func (s *Helm) RenderChart(
 	return parsedManifests, &metadata, nil
 }
 
-func (s *Helm) ChartMetadata(
+func (h *Helm) ChartMetadata(
 	ctx context.Context,
 	chartReference apimodel.ChartReference,
 ) (map[string]any, error) {
-	chartBytes, err := s.RetrieveChart(ctx, chartReference)
+	chartBytes, err := h.RetrieveChart(ctx, chartReference)
 	if err != nil {
 		return nil, err
 	}
@@ -328,30 +335,81 @@ func (s *Helm) ChartMetadata(
 	return helmChart.Values, nil
 }
 
-func (s *Helm) MergeValues(
-	_ context.Context, fileSystem *filesystem.FileSystem, targetPath string, parameters apimodel.HelmRenderParameters,
+func (h *Helm) MergeValues(
+	ctx context.Context, fileSystem *filesystem.FileSystem, targetPath string, parameters apimodel.HelmRenderParameters,
 ) (map[string]any, error) {
-	valueFiles := make([]string, 0)
+	values := maputils.DeepMerge(parameters.ComplexValues, make(map[string]any))
+
 	for _, fileName := range parameters.ValueFiles {
 		filePath := fileSystem.Join(targetPath, fileName)
 		if fileSystem.Exists(filePath) {
-			valueFiles = append(valueFiles, filePath)
+			valueFile, err := fileSystem.ReadFile(filePath)
+			if err != nil {
+				return nil, err
+			}
+			tmpValues := make(map[string]any)
+			if err = yaml.Unmarshal(valueFile, &tmpValues); err != nil {
+				return nil, err
+			}
+			values = maputils.DeepMerge(tmpValues, values)
 		} else if parameters.IgnoreMissingValueFiles == nil || !*parameters.IgnoreMissingValueFiles {
 			return nil, fmt.Errorf(fmt.Sprintf("repository is missing value file at '%s'", filePath))
 		}
 	}
 
-	valueOpts := values.Options{
-		ValueFiles:   valueFiles,
-		Values:       append(flattenValues(parameters.Values), parameters.ValuesFlat...),
-		StringValues: append(flattenValues(parameters.StringValues), parameters.StringValuesFlat...),
+	for _, remoteValueFile := range parameters.RemoteGitValueFiles {
+		repoFileSystem, err := h.gitManager.RetrieveRepositoryToFileSystem(ctx, remoteValueFile.Url, remoteValueFile.Reference)
+		if err != nil {
+			return nil, err
+		}
+		valueFile, err := repoFileSystem.ReadFile(remoteValueFile.Path)
+		if err != nil {
+			return nil, err
+		}
+		tmpValues := make(map[string]any)
+		if err = yaml.Unmarshal(valueFile, &tmpValues); err != nil {
+			return nil, err
+		}
+		values = maputils.DeepMerge(tmpValues, values)
 	}
 
-	allValues, err := valueOpts.MergeValues(s.appConfig.HelmProviders())
-	if err != nil {
-		return nil, err
+	for _, value := range append(flattenValues(parameters.Values), parameters.ValuesFlat...) {
+		if err := strvals.ParseInto(value, values); err != nil {
+			return nil, err
+		}
 	}
-	return maputils.DeepMerge(parameters.ComplexValues, allValues), nil
+
+	for _, value := range append(flattenValues(parameters.StringValues), parameters.StringValuesFlat...) {
+		if err := strvals.ParseIntoString(value, values); err != nil {
+			return nil, err
+		}
+	}
+
+	return values, nil
+}
+
+func (h *Helm) addRemoteValues(
+	ctx context.Context, remoteValueFiles []apimodel.HelmChartRemoteGitValueFile, values map[string]any,
+) (map[string]any, error) {
+	newValues := maputils.DeepMerge(make(map[string]any), values)
+	for _, remoteValueFile := range remoteValueFiles {
+		tempFileSystem := filesystem.New()
+		repoTarball, err := h.gitManager.RetrieveRepository(ctx, remoteValueFile.Url, remoteValueFile.Reference)
+		if err != nil {
+			return nil, err
+		}
+		if err = targz.Extract(ctx, tempFileSystem, bytes.NewBuffer(repoTarball), tempFileSystem.Root); err != nil {
+			return nil, err
+		}
+		valueFile, err := tempFileSystem.ReadFile(remoteValueFile.Path)
+		if err != nil {
+			return nil, err
+		}
+		if err = yaml.Unmarshal(valueFile, &newValues); err != nil {
+			return nil, err
+		}
+	}
+	return newValues, nil
 }
 
 func loadChart(ctx context.Context, fileSystem *filesystem.FileSystem, targetPath string) (*chart.Chart, error) {
@@ -371,11 +429,10 @@ func loadChart(ctx context.Context, fileSystem *filesystem.FileSystem, targetPat
 				aulogging.Logger.Ctx(ctx).Warn().WithErr(innerErr).Printf("failed to close '%s'", ignoreFilePath)
 			}
 		}()
-		iRules, err := ignore.Parse(ignoreFile)
+		rules, err = ignore.Parse(ignoreFile)
 		if err != nil {
 			return nil, err
 		}
-		rules = iRules
 	}
 	rules.AddDefaults()
 
@@ -388,27 +445,27 @@ func loadChart(ctx context.Context, fileSystem *filesystem.FileSystem, targetPat
 			return fmt.Errorf("cannot load irregular file '%s'", filePath)
 		}
 
-		fileName := strings.TrimPrefix(filePath, targetPath)
-		fileName = strings.TrimPrefix(fileName, fileSystem.Separator)
-		if fileName == "" {
+		newFilePath := strings.TrimPrefix(filePath, targetPath)
+		newFilePath = strings.TrimPrefix(newFilePath, fileSystem.Separator)
+		if newFilePath == "" {
 			return nil
 		}
 
 		if fileInfo.IsDir() {
-			if rules.Ignore(fileName, fileInfo) {
+			if rules.Ignore(newFilePath, fileInfo) {
 				return fileSystem.SkipDir()
 			}
 			return nil
 		}
-		if rules.Ignore(fileName, fileInfo) {
+		if rules.Ignore(newFilePath, fileInfo) {
 			return nil
 		}
 
 		data, err := fileSystem.ReadFile(filePath)
 		if err != nil {
-			return fmt.Errorf("error reading %s: %w", fileName, err)
+			return fmt.Errorf("error reading %s: %w", newFilePath, err)
 		}
-		files = append(files, &loader.BufferedFile{Name: fileName, Data: data})
+		files = append(files, &loader.BufferedFile{Name: filepath.ToSlash(newFilePath), Data: data})
 		return nil
 	}
 
