@@ -1,0 +1,12 @@
+APPLICATION_NAME: manifest-maestro
+
+LOG_STYLE: PLAIN
+LOG_ATTRIBUTE_KEY_MAPPINGS: |
+  {
+    "time": "@timestamp",
+    "level": "log.level",
+    "msg": "message",
+    "application": "service.name"
+  }
+
+VAULT_ENABLED: false
