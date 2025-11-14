@@ -11,6 +11,7 @@ import (
 	"github.com/Roshick/manifest-maestro/internal/service/helm"
 	"github.com/Roshick/manifest-maestro/internal/service/kustomize"
 	"github.com/Roshick/manifest-maestro/internal/utils"
+	aulogging "github.com/StephanHCB/go-autumn-logging"
 	"github.com/go-chi/render"
 )
 
@@ -30,7 +31,7 @@ func handleError(ctx context.Context, w http.ResponseWriter, r *http.Request, er
 	}
 }
 
-func handleErrorWrapped(_ context.Context, w http.ResponseWriter, r *http.Request, err error) error {
+func handleErrorWrapped(ctx context.Context, w http.ResponseWriter, r *http.Request, err error) error {
 	switch {
 	case errors.As(err, new(*helmremote.RepositoryNotFoundError)):
 		return render.Render(w, r, &APIError{StatusCode: http.StatusNotFound, ErrorResponse: openapi.ErrorResponse{
@@ -61,6 +62,7 @@ func handleErrorWrapped(_ context.Context, w http.ResponseWriter, r *http.Reques
 			Title: utils.Ptr("Kustomization reference invalid"), Detail: utils.Ptr(err.Error()),
 		}})
 	default:
+		aulogging.Logger.Ctx(ctx).Error().WithErr(err).Printf("unhandled error occurred")
 		return render.Render(w, r, &APIError{StatusCode: http.StatusInternalServerError, ErrorResponse: openapi.ErrorResponse{
 			Title: utils.Ptr("Internal server error"),
 		}})

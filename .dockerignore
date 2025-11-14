@@ -1,0 +1,12 @@
+.github/
+.dockerignore
+.env.template
+.gitignore
+CODEOWNERS
+Dockerfile
+LICENSE.md
+Makefile
+mise.toml
+mkdocs.yaml
+README.md
+renovate.json
