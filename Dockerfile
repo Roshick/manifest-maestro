@@ -2,16 +2,17 @@ ARG GOLANG_VERSION=1
 
 FROM golang:${GOLANG_VERSION} AS build
 
-COPY . /app
 WORKDIR /app
 
-ARG CGO_ENABLED=0
-ARG GOOS=linux
-ARG GOARCH=amd64
+COPY go.mod go.mod
+COPY go.sum go.sum
+RUN go mod download
 
-RUN go build main.go \
-  && go test -v ./... \
-  && go vet ./...
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" main.go
+RUN go test -v ./...
+RUN go vet ./...
 
 FROM scratch
 
