@@ -1,0 +1,71 @@
+name: Build
+
+on:
+  push: {}
+
+jobs:
+  build:
+    name: 📦 Build & Test
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: docker/setup-buildx-action@v2
+    - uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ghcr.io/${{ github.repository }}
+        tags: |
+          type=ref,event=branch,pattern=snapshot-{{sha}}
+        labels: |
+          org.opencontainers.image.source=git@github.com:${{ github.repository }}.git
+          org.opencontainers.image.version=${{ github.head_ref || github.ref_name }}
+          org.opencontainers.image.revision=${{ github.sha }}
+    - id: build-push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  release:
+    name: 🚀 Release
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: semantic-release
+        uses: go-semantic-release/action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
+          allow-initial-development-versions: true # remove to trigger an initial 1.0.0 release
+          changelog-generator-opt: "emojis=true"
+          hooks: goreleaser
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - id: repository-id
+        uses: ASzc/change-string-case-action@v6
+        with:
+          string: ${{ github.repository }}
+      - if: steps.semantic-release.outputs.version != ''
+        run: |
+          TARGET=ghcr.io/${{ steps.repository-id.outputs.lowercase }}:${{ steps.semantic-release.outputs.version }}
+          SOURCE=${{ needs.build.outputs.image }}
+
+          docker pull $SOURCE
+          docker tag $SOURCE $TARGET
+          docker push $TARGET
