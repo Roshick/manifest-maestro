@@ -21,21 +21,21 @@ func (k *KustomizationRenderer) Render(_ context.Context, kustomization *Kustomi
 
 	for _, injection := range parameters.ManifestInjections {
 		if injection.FileName == "" {
-			return nil, fmt.Errorf("ToDo: filename cannot be empty")
+			return nil, NewInvalidKustomizationParameterError(fmt.Errorf("filename cannot be empty"))
 		}
 		if strings.Contains(injection.FileName, kustomization.fileSystem.Separator) {
-			return nil, fmt.Errorf("ToDo: filename cannot contain %s", kustomization.fileSystem.Separator)
+			return nil, NewInvalidKustomizationParameterError(fmt.Errorf("filename cannot contain %s", kustomization.fileSystem.Separator))
 		}
 
 		yamlDocs := make([]string, 0)
 		for _, manifest := range injection.Manifests {
-			yamlBytes, innerErr := yaml.Marshal(manifest)
+			yamlBytes, innerErr := yaml.Marshal(manifest.Content)
 			if innerErr != nil {
 				return nil, innerErr
 			}
 			yamlDocs = append(yamlDocs, string(yamlBytes))
 		}
-		fileContent := []byte(strings.Join(yamlDocs, "---"))
+		fileContent := []byte(strings.Join(yamlDocs, "---\n"))
 
 		if err := kustomization.fileSystem.WriteFile(kustomization.fileSystem.Join(kustomization.targetPath, injection.FileName), fileContent); err != nil {
 			return nil, err
