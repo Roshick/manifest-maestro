@@ -53,12 +53,13 @@ func (k *KustomizationRenderer) Render(_ context.Context, kustomization *Kustomi
 		if innerErr != nil {
 			return nil, innerErr
 		}
-
 		parsedContent := make(map[string]any)
 		if innerErr = yaml.Unmarshal(contentBytes, &parsedContent); innerErr != nil {
 			return nil, innerErr
 		}
-
+		if parsedContent == nil || len(parsedContent) == 0 {
+			continue
+		}
 		parsedManifests = append(parsedManifests, openapi.Manifest{
 			Content: parsedContent,
 		})

@@ -102,6 +102,9 @@ func (r *ChartRenderer) Render(_ context.Context, helmChart *Chart, parameters *
 		if err = yaml.Unmarshal([]byte(manifest.Content), &parsedContent); err != nil {
 			return nil, nil, err
 		}
+		if parsedContent == nil || len(parsedContent) == 0 {
+			continue
+		}
 		parsedManifests = append(parsedManifests, openapi.Manifest{
 			Source:  utils.Ptr(manifest.Name),
 			Content: parsedContent,
@@ -112,6 +115,9 @@ func (r *ChartRenderer) Render(_ context.Context, helmChart *Chart, parameters *
 			parsedContent := make(map[string]any)
 			if err = yaml.Unmarshal([]byte(hook.Manifest), &parsedContent); err != nil {
 				return nil, nil, err
+			}
+			if parsedContent == nil || len(parsedContent) == 0 {
+				continue
 			}
 			parsedManifests = append(parsedManifests, openapi.Manifest{
 				Source:  utils.Ptr(hook.Name),
