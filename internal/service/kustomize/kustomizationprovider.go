@@ -20,11 +20,8 @@ func NewKustomizationProvider(gitRepositoryCache *cache.GitRepositoryCache) *Kus
 	}
 }
 
-func (p *KustomizationProvider) GetKustomization(ctx context.Context, abstractReference openapi.KustomizationReference) (*Kustomization, error) {
-	if reference := abstractReference.GitRepositoryPathReference; reference != nil {
-		return p.getKustomizationFromGitRepositoryPathReference(ctx, *reference)
-	}
-	return nil, NewKustomizationReferenceInvalidError()
+func (p *KustomizationProvider) GetKustomization(ctx context.Context, abstractReference openapi.GitRepositoryPathReference) (*Kustomization, error) {
+	return p.getKustomizationFromGitRepositoryPathReference(ctx, abstractReference)
 }
 
 func (p *KustomizationProvider) getKustomizationFromGitRepositoryPathReference(ctx context.Context, reference openapi.GitRepositoryPathReference) (*Kustomization, error) {

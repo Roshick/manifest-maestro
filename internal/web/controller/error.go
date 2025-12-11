@@ -61,6 +61,10 @@ func handleErrorWrapped(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
 			Title: utils.Ptr("Kustomization reference invalid"), Detail: utils.Ptr(err.Error()),
 		}})
+	case errors.As(err, new(*kustomize.InvalidKustomizationParameterError)):
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+			Title: utils.Ptr("Kustomization parameters invalid"), Detail: utils.Ptr(err.Error()),
+		}})
 	default:
 		aulogging.Logger.Ctx(ctx).Error().WithErr(err).Printf("unhandled error occurred")
 		return render.Render(w, r, &APIError{StatusCode: http.StatusInternalServerError, ErrorResponse: openapi.ErrorResponse{
