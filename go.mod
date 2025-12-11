@@ -19,6 +19,7 @@ require (
 	github.com/gofri/go-github-pagination v1.0.1
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
 	github.com/google/go-github/v78 v78.0.0
+	github.com/google/go-github/v80 v80.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/prometheus/client_golang v1.23.2
