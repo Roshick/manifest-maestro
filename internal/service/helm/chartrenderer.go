@@ -67,10 +67,16 @@ func (r *ChartRenderer) Render(_ context.Context, helmChart *Chart, parameters *
 			mergedValues = valuesCopy.(chartutil.Values).AsMap()
 		}
 	}
+	var appVersion *string
+	if helmChart.chart.Metadata.AppVersion != "" {
+		appVersion = utils.Ptr(helmChart.chart.Metadata.AppVersion)
+	}
 	metadata := &openapi.HelmRenderMetadata{
 		ReleaseName:  options.Name,
 		Namespace:    options.Namespace,
+		AppVersion:   appVersion,
 		ApiVersions:  capabilities.APIVersions,
+		KubeVersion:  capabilities.KubeVersion.String(),
 		HelmVersion:  capabilities.HelmVersion.Version,
 		MergedValues: mergedValues,
 	}
