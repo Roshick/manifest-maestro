@@ -93,7 +93,18 @@ func (p *ChartProvider) buildChart(ctx context.Context, fileSystem *filesystem.F
 			return nil, innerErr
 		}
 
-		if path := fileSystem.Join(chartsPath, fmt.Sprintf("%s-%s.tgz", dependency.Name, dependency.Version)); fileSystem.Exists(path) {
+		if strings.HasPrefix(dependency.Repository, "file://") {
+			localPath := strings.TrimPrefix(dependency.Repository, "file://")
+			path := fileSystem.Join(targetPath, localPath)
+			dependencyChart, innerErr := p.loadChart(ctx, fileSystem, path)
+			if innerErr != nil {
+				return nil, innerErr
+			}
+			if dependencyChart.Metadata.Version == dependency.Version {
+				helmChart.AddDependency(dependencyChart)
+				continue
+			}
+		} else if path := fileSystem.Join(chartsPath, fmt.Sprintf("%s-%s.tgz", dependency.Name, dependency.Version)); fileSystem.Exists(path) {
 			dependencyChart, innerErr := p.loadChart(ctx, fileSystem, path)
 			if innerErr != nil {
 				return nil, innerErr
