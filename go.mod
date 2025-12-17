@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/PuerkitoBio/rehttp v1.4.0
-	github.com/Roshick/go-autumn-slog v0.3.1
+	github.com/Roshick/go-autumn-slog v0.3.2
 	github.com/Roshick/go-autumn-synchronisation v0.7.7
 	github.com/Roshick/go-autumn-vault v0.2.0
 	github.com/Roshick/go-autumn-web v1.0.6
