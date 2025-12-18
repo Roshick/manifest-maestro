@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"helm.sh/helm/v3/pkg/getter"
+	"github.com/Roshick/manifest-maestro/internal/config"
 )
 
 type HelmRemote struct {
-	providers getter.Providers
+	hostProviders config.HelmHostProviders
 }
 
-func New(providers getter.Providers) *HelmRemote {
-	return &HelmRemote{providers: providers}
+func New(hostProviders config.HelmHostProviders) *HelmRemote {
+	return &HelmRemote{hostProviders: hostProviders}
 }
 
 func (r *HelmRemote) GetIndex(_ context.Context, repositoryURL url.URL) ([]byte, error) {
@@ -27,7 +27,12 @@ func (r *HelmRemote) GetIndex(_ context.Context, repositoryURL url.URL) ([]byte,
 		repositoryURL.Path = filepath.Join(repositoryURL.Path, "index.yaml")
 	}
 
-	urlGetter, err := r.providers.ByScheme(repositoryURL.Scheme)
+	providers, ok := r.hostProviders[repositoryURL.Host]
+	if !ok {
+		return nil, fmt.Errorf("no providers configured for host: %s", repositoryURL.Host)
+	}
+
+	urlGetter, err := providers.ByScheme(repositoryURL.Scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +46,12 @@ func (r *HelmRemote) GetIndex(_ context.Context, repositoryURL url.URL) ([]byte,
 }
 
 func (r *HelmRemote) GetChart(_ context.Context, chartURL url.URL) ([]byte, error) {
-	urlGetter, err := r.providers.ByScheme(chartURL.Scheme)
+	providers, ok := r.hostProviders[chartURL.Host]
+	if !ok {
+		return nil, fmt.Errorf("no providers configured for host: %s", chartURL.Host)
+	}
+
+	urlGetter, err := providers.ByScheme(chartURL.Scheme)
 	if err != nil {
 		return nil, err
 	}

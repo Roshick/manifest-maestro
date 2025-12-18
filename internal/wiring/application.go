@@ -13,7 +13,7 @@ import (
 	"github.com/Roshick/manifest-maestro/internal/client"
 	"github.com/Roshick/manifest-maestro/internal/service/cache"
 	"github.com/Roshick/manifest-maestro/internal/web/controller"
-	"github.com/google/go-github/v78/github"
+	"github.com/google/go-github/v80/github"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -324,7 +324,7 @@ func (a *Application) createGit(_ context.Context) error {
 
 func (a *Application) createHelmRemote(_ context.Context) error {
 	if a.HelmRemote == nil {
-		a.HelmRemote = helmremote.New(a.ApplicationCfg.HelmProviders)
+		a.HelmRemote = helmremote.New(a.ApplicationCfg.HelmHostProviders)
 	}
 	return nil
 }

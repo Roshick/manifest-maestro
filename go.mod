@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/PuerkitoBio/rehttp v1.4.0
-	github.com/Roshick/go-autumn-slog v0.3.1
+	github.com/Roshick/go-autumn-slog v0.3.2
 	github.com/Roshick/go-autumn-synchronisation v0.7.7
 	github.com/Roshick/go-autumn-vault v0.2.0
 	github.com/Roshick/go-autumn-web v1.0.6
@@ -18,7 +18,7 @@ require (
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/gofri/go-github-pagination v1.0.1
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
-	github.com/google/go-github/v78 v78.0.0
+	github.com/google/go-github/v80 v80.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/prometheus/client_golang v1.23.2

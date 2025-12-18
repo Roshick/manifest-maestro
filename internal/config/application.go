@@ -31,16 +31,18 @@ const (
 	SynchronizationMethodRedis
 )
 
+type HelmHostProviders map[string]getter.Providers
+
 type ApplicationConfig struct {
 	ApplicationName string `env:"APPLICATION_NAME" envDefault:"manifest-maestro"`
 
 	ServerAddress     string `env:"SERVER_ADDRESS"`
 	ServerPrimaryPort uint   `env:"SERVER_PRIMARY_PORT" envDefault:"8080"`
 
-	HelmDefaultReleaseName           string           `env:"HELM_DEFAULT_RELEASE_NAME" envDefault:"RELEASE-NAME"`
-	HelmDefaultKubernetesAPIVersions []string         `env:"HELM_DEFAULT_KUBERNETES_API_VERSIONS" envDefault:"[]"`
-	HelmDefaultKubernetesNamespace   string           `env:"HELM_DEFAULT_KUBERNETES_NAMESPACE" envDefault:"default"`
-	HelmProviders                    getter.Providers `env:"HELM_PROVIDERS" envDefault:"[]"`
+	HelmDefaultReleaseName           string            `env:"HELM_DEFAULT_RELEASE_NAME" envDefault:"RELEASE-NAME"`
+	HelmDefaultKubernetesNamespace   string            `env:"HELM_DEFAULT_KUBERNETES_NAMESPACE" envDefault:"default"`
+	HelmDefaultKubernetesAPIVersions []string          `env:"HELM_DEFAULT_KUBERNETES_API_VERSIONS" envDefault:"[]"`
+	HelmHostProviders                HelmHostProviders `env:"HELM_HOST_PROVIDERS" envDefault:"{}"`
 
 	GitHubAppID             int64          `env:"GITHUB_APP_ID"`
 	GitHubAppInstallationID int64          `env:"GITHUB_APP_INSTALLATION_ID"`
@@ -64,8 +66,8 @@ func (c *ApplicationConfig) ObtainValuesFromEnv() error {
 			reflect.TypeOf(SynchronizationMethod(0)): func(v string) (any, error) {
 				return parseSynchronizationMethod(v)
 			},
-			reflect.TypeOf(getter.Providers{}): func(v string) (any, error) {
-				return parseHelmProviders(v)
+			reflect.TypeOf(HelmHostProviders{}): func(v string) (any, error) {
+				return parseHelmHostProviders(v)
 			},
 		},
 	})
@@ -94,7 +96,9 @@ func parseSynchronizationMethod(value string) (SynchronizationMethod, error) {
 	}
 }
 
-type helmProviderRaw struct {
+type helmHostProvidersRaw = map[string][]helmHostProviderRaw
+
+type helmHostProviderRaw struct {
 	Type      string        `json:"type"`
 	Schemes   []string      `json:"schemes"`
 	BasicAuth *basicAuthRaw `json:"basicAuth"`
@@ -107,30 +111,34 @@ type basicAuthRaw struct {
 	PasswordEnvVar *string `json:"passwordEnvVar"`
 }
 
-func parseHelmProviders(raw string) (getter.Providers, error) {
-	var raws []helmProviderRaw
+func parseHelmHostProviders(raw string) (HelmHostProviders, error) {
+	var raws helmHostProvidersRaw
 	if err := json.Unmarshal([]byte(raw), &raws); err != nil {
-		return nil, fmt.Errorf("invalid HELM_PROVIDERS: %w", err)
+		return nil, fmt.Errorf("invalid HELM_HOST_PROVIDERS: %w", err)
 	}
-	providers := make(getter.Providers, 0, len(raws))
-	for i, e := range raws {
-		ptype := strings.ToLower(strings.TrimSpace(e.Type))
-		if ptype == "" {
-			return nil, fmt.Errorf("helm provider at index %d missing type", i)
+	helmHostProviders := make(map[string]getter.Providers)
+	for host, r := range raws {
+		providers := make(getter.Providers, 0, len(raws))
+		for i, p := range r {
+			ptype := strings.ToLower(strings.TrimSpace(p.Type))
+			if ptype == "" {
+				return nil, fmt.Errorf("helm provider at index %d missing type", r)
+			}
+			switch ptype {
+			case "http", "https":
+				providers = append(providers, buildHTTPProviderFromRaw(p))
+			case "oci":
+				providers = append(providers, buildOCIProviderFromRaw(p))
+			default:
+				return nil, fmt.Errorf("unsupported helm provider type '%s' at index %d", p.Type, i)
+			}
 		}
-		switch ptype {
-		case "http", "https":
-			providers = append(providers, buildHTTPProviderFromRaw(e))
-		case "oci":
-			providers = append(providers, buildOCIProviderFromRaw(e))
-		default:
-			return nil, fmt.Errorf("unsupported helm provider type '%s' at index %d", e.Type, i)
-		}
+		helmHostProviders[host] = providers
 	}
-	return providers, nil
+	return helmHostProviders, nil
 }
 
-func buildHTTPProviderFromRaw(raw helmProviderRaw) getter.Provider {
+func buildHTTPProviderFromRaw(raw helmHostProviderRaw) getter.Provider {
 	schemes := raw.Schemes
 	if len(schemes) == 0 {
 		schemes = []string{"http", "https"}
@@ -144,7 +152,7 @@ func buildHTTPProviderFromRaw(raw helmProviderRaw) getter.Provider {
 	}}
 }
 
-func buildOCIProviderFromRaw(raw helmProviderRaw) getter.Provider {
+func buildOCIProviderFromRaw(raw helmHostProviderRaw) getter.Provider {
 	schemes := raw.Schemes
 	if len(schemes) == 0 {
 		schemes = []string{"oci"}

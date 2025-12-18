@@ -3,10 +3,11 @@ package git
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/google/go-github/v78/github"
-	"time"
+	"github.com/google/go-github/v80/github"
 )
 
 type GitHubAppAuthProvider struct {
