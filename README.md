@@ -21,7 +21,7 @@ Platform & infra teams often need consistent, fast, reproducible Kubernetes mani
 - Merge Helm values from multiple sources: complex values (structured), value files, flat and string values
 - Inject arbitrary YAML manifests into Kustomize render pipeline
 - Dependency resolution for Helm chart sub‑charts including remote fetch of missing dependencies
-- Pluggable Helm getter providers via `HELM_PROVIDERS` env var (HTTP(S) + Basic Auth, OCI)
+- Pluggable Helm getter providers via `HELM_HOST_PROVIDERS` env var (HTTP(S) + Basic Auth, OCI)
 - Caching layers (Git repositories, Helm indexes, Helm chart tarballs) with time‑based TTLs
 - Uniform JSON error model & OpenAPI documented API
 - Health (readiness/liveness), metrics (Prometheus), profiling (`/debug/pprof`), and tracing (OpenTelemetry)
@@ -72,12 +72,72 @@ Application (from `ApplicationConfig`):
 - `HELM_DEFAULT_RELEASE_NAME` (default: `RELEASE-NAME`)
 - `HELM_DEFAULT_KUBERNETES_API_VERSIONS` (JSON array default: `[]`)
 - `HELM_DEFAULT_KUBERNETES_NAMESPACE` (default: `default`)
-- `HELM_PROVIDERS` – JSON array of provider objects e.g.:
+- `HELM_HOST_PROVIDERS` – JSON object mapping hostnames to lists of Helm getter providers used when talking to that host.
+  - Shape: `{ "<host>": [ { "type": "http" | "https" | "oci", "schemes": ["..."], "basicAuth": { ... } } ] }`.
+  - `type` (required):
+    - `"http"` or `"https"` → HTTP(S) chart repositories (defaults `schemes` to `["http","https"]` when omitted or empty).
+    - `"oci"` → OCI registries (defaults `schemes` to `["oci"]` when omitted or empty).
+  - `schemes` (optional): list of URL schemes this provider should handle for the given host (e.g. `["https"]`, `["oci"]`).
+  - `basicAuth` (optional):
+    - `username` / `password`: literal credentials.
+    - `usernameEnvVar` / `passwordEnvVar`: names of environment variables whose values will be read at runtime.
+    - If either username or password resolves to an empty string, no basic auth is configured for that provider.
+  - Invalid JSON or unsupported `type` values will cause startup to fail with an `invalid HELM_HOST_PROVIDERS` error.
+  - When unset or `{}`, only Helm's default providers are used (no host-specific overrides).
+
+  Example: HTTP(S) chart repo with env-based basic auth
   ```json
-  [
-    {"type": "http", "schemes": ["https"], "basicAuth": {"usernameEnvVar": "HELM_USER", "passwordEnvVar": "HELM_PASS"}},
-    {"type": "oci", "schemes": ["oci"], "basicAuth": {"username": "robot", "password": "s3cr3t"}}
-  ]
+  {
+    "charts.example.com": [
+      {
+        "type": "http",
+        "basicAuth": {
+          "usernameEnvVar": "HELM_USER",
+          "passwordEnvVar": "HELM_PASS"
+        }
+      }
+    ]
+  }
+  ```
+
+  Example: OCI registry with explicit schemes and inline credentials
+  ```json
+  {
+    "oci-registry.example.com": [
+      {
+        "type": "oci",
+        "schemes": ["oci"],
+        "basicAuth": {
+          "username": "robot",
+          "password": "s3cr3t"
+        }
+      }
+    ]
+  }
+  ```
+
+  Example: single host with separate HTTP and OCI providers
+  ```json
+  {
+    "artifacts.example.com": [
+      {
+        "type": "http",
+        "schemes": ["https"],
+        "basicAuth": {
+          "usernameEnvVar": "HELM_HTTP_USER",
+          "passwordEnvVar": "HELM_HTTP_PASS"
+        }
+      },
+      {
+        "type": "oci",
+        "schemes": ["oci"],
+        "basicAuth": {
+          "usernameEnvVar": "HELM_OCI_USER",
+          "passwordEnvVar": "HELM_OCI_PASS"
+        }
+      }
+    ]
+  }
   ```
 - `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY` (PEM for GitHub App auth)
 - `SYNCHRONIZATION_METHOD` (`MEMORY` | `REDIS`)
@@ -273,4 +333,3 @@ MIT – see `LICENSE` file.
 
 ---
 Questions or ideas? Open an issue or start a discussion.
-

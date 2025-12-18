@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
-	"github.com/google/go-github/v78/github"
+	"github.com/google/go-github/v80/github"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
