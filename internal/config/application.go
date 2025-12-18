@@ -122,7 +122,7 @@ func parseHelmHostProviders(raw string) (HelmHostProviders, error) {
 		for i, p := range r {
 			ptype := strings.ToLower(strings.TrimSpace(p.Type))
 			if ptype == "" {
-				return nil, fmt.Errorf("helm provider at index %d missing type", r)
+				return nil, fmt.Errorf("helm provider at index %d missing type", i)
 			}
 			switch ptype {
 			case "http", "https":
