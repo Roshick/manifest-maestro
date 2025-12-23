@@ -2,26 +2,16 @@ package kustomize
 
 import "fmt"
 
-type KustomizationReferenceInvalidError struct{}
-
-func (e *KustomizationReferenceInvalidError) Error() string {
-	return "Kustomization reference is not a valid Git repository path reference"
-}
-
-func NewKustomizationReferenceInvalidError() *KustomizationReferenceInvalidError {
-	return &KustomizationReferenceInvalidError{}
-}
-
-type InvalidKustomizationParameterError struct {
+type KustomizationRenderError struct {
 	err error
 }
 
-func (e *InvalidKustomizationParameterError) Error() string {
-	return fmt.Sprintf("kustomization parameters are invalid: %v", e.err)
+func (e *KustomizationRenderError) Error() string {
+	return fmt.Sprintf("failed to render Kustomize kustomization: %v", e.err)
 }
 
-func NewInvalidKustomizationParameterError(err error) *InvalidKustomizationParameterError {
-	return &InvalidKustomizationParameterError{
+func NewKustomizationRenderError(err error) *KustomizationRenderError {
+	return &KustomizationRenderError{
 		err: err,
 	}
 }

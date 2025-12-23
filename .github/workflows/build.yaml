@@ -52,7 +52,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: false
-          allow-initial-development-versions: true # remove to trigger an initial 1.0.0 release
+          allow-initial-development-versions: true
           changelog-generator-opt: "emojis=true"
           hooks: goreleaser
         env:

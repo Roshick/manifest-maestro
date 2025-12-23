@@ -2,6 +2,7 @@ package kustomize
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -16,15 +17,23 @@ func NewKustomizationRenderer() *KustomizationRenderer {
 	return &KustomizationRenderer{}
 }
 
+func (k *KustomizationRenderer) render(ctx context.Context, kustomization *Kustomization, parameters *openapi.KustomizeRenderParameters) ([]openapi.Manifest, error) {
+	manifest, err := k.Render(ctx, kustomization, parameters)
+	if err != nil {
+		return nil, NewKustomizationRenderError(err)
+	}
+	return manifest, nil
+}
+
 func (k *KustomizationRenderer) Render(_ context.Context, kustomization *Kustomization, parameters *openapi.KustomizeRenderParameters) ([]openapi.Manifest, error) {
 	kustomizer := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
 
 	for _, injection := range parameters.ManifestInjections {
 		if injection.FileName == "" {
-			return nil, NewInvalidKustomizationParameterError(fmt.Errorf("filename cannot be empty"))
+			return nil, errors.New("filename cannot be empty")
 		}
 		if strings.Contains(injection.FileName, kustomization.fileSystem.Separator) {
-			return nil, NewInvalidKustomizationParameterError(fmt.Errorf("filename cannot contain %s", kustomization.fileSystem.Separator))
+			return nil, fmt.Errorf("filename cannot contain %s", kustomization.fileSystem.Separator)
 		}
 
 		yamlDocs := make([]string, 0)

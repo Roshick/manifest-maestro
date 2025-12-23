@@ -29,7 +29,15 @@ func NewChartRenderer(defaultKubernetesAPIVersions []string) *ChartRenderer {
 	}
 }
 
-func (r *ChartRenderer) Render(_ context.Context, helmChart *Chart, parameters *openapi.HelmRenderParameters) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
+func (r *ChartRenderer) Render(ctx context.Context, helmChart *Chart, parameters *openapi.HelmRenderParameters) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
+	manifests, metadata, err := r.Render(ctx, helmChart, parameters)
+	if err != nil {
+		return nil, nil, NewChartRenderError(err)
+	}
+	return manifests, metadata, nil
+}
+
+func (r *ChartRenderer) render(_ context.Context, helmChart *Chart, parameters *openapi.HelmRenderParameters) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
 	actualParameters := openapi.HelmRenderParameters{}
 	if parameters != nil {
 		actualParameters = *parameters
@@ -54,7 +62,7 @@ func (r *ChartRenderer) Render(_ context.Context, helmChart *Chart, parameters *
 	capabilities.APIVersions = append(capabilities.APIVersions, actualParameters.ApiVersions...)
 	renderValues, err := chartutil.ToRenderValues(helmChart.chart, allValues, options, capabilities)
 	if err != nil {
-		return nil, nil, NewInvalidRenderValuesError(err)
+		return nil, nil, err
 	}
 
 	var mergedValues map[string]any
@@ -84,7 +92,7 @@ func (r *ChartRenderer) Render(_ context.Context, helmChart *Chart, parameters *
 	var renderEngine engine.Engine
 	files, err := renderEngine.Render(helmChart.chart, renderValues)
 	if err != nil {
-		return nil, nil, NewRenderError(err)
+		return nil, nil, err
 	}
 	if utils.DefaultIfNil(actualParameters.IncludeCRDs, true) {
 		for _, crd := range helmChart.chart.CRDObjects() {

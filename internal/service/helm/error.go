@@ -2,30 +2,6 @@ package helm
 
 import "fmt"
 
-type ValueFileMissingError struct {
-	path string
-}
-
-func (e *ValueFileMissingError) Error() string {
-	return fmt.Sprintf("repository is missing value file at '%s'", e.path)
-}
-
-func NewValueFileMissingError(path string) *ValueFileMissingError {
-	return &ValueFileMissingError{
-		path: path,
-	}
-}
-
-type RepositoryReferenceInvalidError struct{}
-
-func (e *RepositoryReferenceInvalidError) Error() string {
-	return "repository reference is neither a valid Helm chart nor a Git repository reference"
-}
-
-func NewRepositoryReferenceInvalidError() *RepositoryReferenceInvalidError {
-	return &RepositoryReferenceInvalidError{}
-}
-
 type ChartReferenceInvalidError struct{}
 
 func (e *ChartReferenceInvalidError) Error() string {
@@ -36,30 +12,30 @@ func NewChartReferenceInvalidError() *ChartReferenceInvalidError {
 	return &ChartReferenceInvalidError{}
 }
 
-type InvalidRenderValuesError struct {
+type ChartBuildError struct {
 	err error
 }
 
-func (e *InvalidRenderValuesError) Error() string {
-	return fmt.Sprintf("render values are invalid: %v", e.err)
+func (e *ChartBuildError) Error() string {
+	return fmt.Sprintf("failed to build Helm chart: %v", e.err)
 }
 
-func NewInvalidRenderValuesError(err error) *InvalidRenderValuesError {
-	return &InvalidRenderValuesError{
+func NewChartBuildError(err error) *ChartBuildError {
+	return &ChartBuildError{
 		err: err,
 	}
 }
 
-type RenderError struct {
+type ChartRenderError struct {
 	err error
 }
 
-func (e *RenderError) Error() string {
-	return fmt.Sprintf("failed to render chart: %v", e.err)
+func (e *ChartRenderError) Error() string {
+	return fmt.Sprintf("failed to render Helm chart: %v", e.err)
 }
 
-func NewRenderError(err error) *RenderError {
-	return &RenderError{
+func NewChartRenderError(err error) *ChartRenderError {
+	return &ChartRenderError{
 		err: err,
 	}
 }

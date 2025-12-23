@@ -60,7 +60,11 @@ func (p *ChartProvider) getHelmChartFromGitRepositoryPathReference(ctx context.C
 		return nil, err
 	}
 
-	return p.buildChart(ctx, fileSystem, targetPath)
+	helmChart, err := p.buildChart(ctx, fileSystem, targetPath)
+	if err != nil {
+		return nil, NewChartBuildError(err)
+	}
+	return helmChart, nil
 }
 
 func (p *ChartProvider) getHelmChartFromHelmRepositoryChartReference(ctx context.Context, reference openapi.HelmChartRepositoryChartReference) (*Chart, error) {
@@ -72,7 +76,11 @@ func (p *ChartProvider) getHelmChartFromHelmRepositoryChartReference(ctx context
 	}
 
 	targetPath := fileSystem.Join(fileSystem.Root, reference.ChartName)
-	return p.buildChart(ctx, fileSystem, targetPath)
+	helmChart, err := p.buildChart(ctx, fileSystem, targetPath)
+	if err != nil {
+		return nil, NewChartBuildError(err)
+	}
+	return helmChart, nil
 }
 
 func (p *ChartProvider) buildChart(ctx context.Context, fileSystem *filesystem.FileSystem, targetPath string) (*Chart, error) {

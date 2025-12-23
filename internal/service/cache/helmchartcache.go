@@ -41,7 +41,7 @@ func (c *HelmChartCache) RetrieveChart(ctx context.Context, chartReference opena
 	} else if strings.HasPrefix(chartReference.RepositoryURL, "oci://") {
 		return c.retrieveHelmChartViaOCI(ctx, chartReference)
 	}
-	return nil, fmt.Errorf("unsupported repository url: %s", chartReference.RepositoryURL)
+	return nil, NewInvalidHelmRepositoryURLError(chartReference.RepositoryURL)
 }
 
 func (c *HelmChartCache) RetrieveChartToFileSystem(ctx context.Context, chartReference openapi.HelmChartRepositoryChartReference, fileSystem *filesystem.FileSystem) error {
