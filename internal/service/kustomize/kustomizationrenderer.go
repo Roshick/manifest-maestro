@@ -17,15 +17,15 @@ func NewKustomizationRenderer() *KustomizationRenderer {
 	return &KustomizationRenderer{}
 }
 
-func (k *KustomizationRenderer) render(ctx context.Context, kustomization *Kustomization, parameters *openapi.KustomizeRenderParameters) ([]openapi.Manifest, error) {
-	manifest, err := k.Render(ctx, kustomization, parameters)
+func (k *KustomizationRenderer) Render(ctx context.Context, kustomization *Kustomization, parameters *openapi.KustomizeRenderParameters) ([]openapi.Manifest, error) {
+	manifest, err := k.render(ctx, kustomization, parameters)
 	if err != nil {
 		return nil, NewKustomizationRenderError(err)
 	}
 	return manifest, nil
 }
 
-func (k *KustomizationRenderer) Render(_ context.Context, kustomization *Kustomization, parameters *openapi.KustomizeRenderParameters) ([]openapi.Manifest, error) {
+func (k *KustomizationRenderer) render(_ context.Context, kustomization *Kustomization, parameters *openapi.KustomizeRenderParameters) ([]openapi.Manifest, error) {
 	kustomizer := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
 
 	for _, injection := range parameters.ManifestInjections {

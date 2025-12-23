@@ -30,7 +30,7 @@ func NewChartRenderer(defaultKubernetesAPIVersions []string) *ChartRenderer {
 }
 
 func (r *ChartRenderer) Render(ctx context.Context, helmChart *Chart, parameters *openapi.HelmRenderParameters) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
-	manifests, metadata, err := r.Render(ctx, helmChart, parameters)
+	manifests, metadata, err := r.render(ctx, helmChart, parameters)
 	if err != nil {
 		return nil, nil, NewChartRenderError(err)
 	}
