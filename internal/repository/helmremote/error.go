@@ -1,6 +1,9 @@
 package helmremote
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
 type RepositoryNotFoundError struct {
 	repositoryURL string
@@ -16,14 +19,18 @@ func NewRepositoryNotFoundError(repositoryURL string) *RepositoryNotFoundError {
 	}
 }
 
+func NewRepositoryNotFoundError2(repositoryURL url.URL) *RepositoryNotFoundError {
+	return &RepositoryNotFoundError{
+		repositoryURL: repositoryURL.String(),
+	}
+}
+
 type RepositoryChartNotFoundError struct {
-	repositoryURL string
-	chartName     string
-	chartVersion  string
+	chartURL string
 }
 
 func (e *RepositoryChartNotFoundError) Error() string {
-	return fmt.Sprintf("chart '%s' at version '%s' does not exist in helm repository '%s'", e.chartName, e.chartVersion, e.repositoryURL)
+	return fmt.Sprintf("helm chart '%s' does not exist", e.chartURL)
 }
 
 func NewRepositoryChartNotFoundError(
@@ -32,8 +39,30 @@ func NewRepositoryChartNotFoundError(
 	chartVersion string,
 ) *RepositoryChartNotFoundError {
 	return &RepositoryChartNotFoundError{
-		repositoryURL: repositoryURL,
-		chartName:     chartName,
-		chartVersion:  chartVersion,
+		chartURL: fmt.Sprintf("%s/%s:%s", repositoryURL, chartName, chartVersion),
+	}
+}
+
+func NewRepositoryChartNotFoundError2(chartURL url.URL) *RepositoryChartNotFoundError {
+	return &RepositoryChartNotFoundError{
+		chartURL: chartURL.String(),
+	}
+}
+
+type MissingProviderError struct {
+	host   string
+	scheme string
+}
+
+func (e *MissingProviderError) Error() string {
+	return fmt.Sprintf("missing provider for '%s' with scheme '%s'", e.host, e.scheme)
+}
+
+func NewMissingProviderError(
+	chartURL url.URL,
+) *MissingProviderError {
+	return &MissingProviderError{
+		host:   chartURL.Host,
+		scheme: chartURL.Scheme,
 	}
 }

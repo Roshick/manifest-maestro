@@ -37,7 +37,7 @@ func (c *Chart) MergeValues(parameters openapi.HelmRenderParameters) (map[string
 			}
 			values = utils.DeepMerge(tmpValues, values)
 		} else if parameters.IgnoreMissingValueFiles == nil || !*parameters.IgnoreMissingValueFiles {
-			return nil, NewValueFileMissingError(filePath)
+			return nil, fmt.Errorf("repository is missing value file at '%s'", filePath)
 		}
 	}
 

@@ -55,7 +55,7 @@ func (c *HelmIndexCache) RetrieveIndex(ctx context.Context, repositoryURL string
 		return nil, err
 	}
 
-	if err = c.cache.Set(ctx, cacheKey, indexBytes, 5*time.Minute); err != nil {
+	if err = c.cache.Set(ctx, cacheKey, indexBytes, 15*time.Minute); err != nil {
 		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("failed to cache helm repository index with key '%s'", repositoryURL)
 	} else {
 		aulogging.Logger.Ctx(ctx).Info().Printf("successfully cached helm repository index with key '%s'", repositoryURL)

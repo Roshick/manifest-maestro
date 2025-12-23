@@ -82,7 +82,7 @@ func (c *GitRepositoryCache) refreshRepository(ctx context.Context, repositoryUR
 	if err != nil {
 		return nil, err
 	}
-	if err = c.cache.Set(ctx, key, tarball, 5*time.Minute); err != nil {
+	if err = c.cache.Set(ctx, key, tarball, 15*time.Minute); err != nil {
 		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("failed to cache git repository with key '%s'", key)
 	} else {
 		aulogging.Logger.Ctx(ctx).Info().Printf("successfully cached git repository with key '%s'", key)
