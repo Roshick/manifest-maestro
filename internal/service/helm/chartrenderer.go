@@ -37,7 +37,7 @@ func (r *ChartRenderer) Render(ctx context.Context, helmChart *Chart, parameters
 	return manifests, metadata, nil
 }
 
-func (r *ChartRenderer) render(_ context.Context, helmChart *Chart, parameters *openapi.HelmRenderParameters) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
+func (r *ChartRenderer) render(ctx context.Context, helmChart *Chart, parameters *openapi.HelmRenderParameters) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
 	actualParameters := openapi.HelmRenderParameters{}
 	if parameters != nil {
 		actualParameters = *parameters
@@ -75,18 +75,14 @@ func (r *ChartRenderer) render(_ context.Context, helmChart *Chart, parameters *
 			mergedValues = valuesCopy.(chartutil.Values).AsMap()
 		}
 	}
-	var appVersion *string
-	if helmChart.chart.Metadata.AppVersion != "" {
-		appVersion = utils.Ptr(helmChart.chart.Metadata.AppVersion)
-	}
 	metadata := &openapi.HelmRenderMetadata{
-		ReleaseName:  options.Name,
-		Namespace:    options.Namespace,
-		AppVersion:   appVersion,
-		ApiVersions:  capabilities.APIVersions,
-		KubeVersion:  capabilities.KubeVersion.String(),
-		HelmVersion:  capabilities.HelmVersion.Version,
-		MergedValues: mergedValues,
+		ReleaseName:   options.Name,
+		Namespace:     options.Namespace,
+		ApiVersions:   capabilities.APIVersions,
+		KubeVersion:   capabilities.KubeVersion.String(),
+		HelmVersion:   capabilities.HelmVersion.Version,
+		MergedValues:  mergedValues,
+		ChartMetadata: helmChart.Metadata(),
 	}
 
 	var renderEngine engine.Engine

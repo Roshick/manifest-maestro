@@ -21,6 +21,23 @@ func (c *Chart) DefaultValues() map[string]any {
 	return c.chart.Values
 }
 
+func (c *Chart) Metadata() openapi.HelmChartMetadata {
+	return constructMetadata(c.chart)
+}
+
+func constructMetadata(helmChart *chart.Chart) openapi.HelmChartMetadata {
+	dependenciesMetadata := make([]openapi.HelmChartMetadata, 0, len(helmChart.Metadata.Dependencies))
+	for _, dependency := range helmChart.Dependencies() {
+		dependenciesMetadata = append(dependenciesMetadata, constructMetadata(dependency))
+	}
+	return openapi.HelmChartMetadata{
+		Name:         helmChart.Metadata.Name,
+		Version:      helmChart.Metadata.Version,
+		AppVersion:   utils.Ptr(helmChart.Metadata.AppVersion),
+		Dependencies: dependenciesMetadata,
+	}
+}
+
 func (c *Chart) MergeValues(parameters openapi.HelmRenderParameters) (map[string]any, error) {
 	values := utils.DeepMerge(parameters.ComplexValues, make(map[string]any))
 

@@ -8,7 +8,7 @@ require (
 	github.com/Roshick/go-autumn-synchronisation v0.7.7
 	github.com/Roshick/go-autumn-vault v0.2.0
 	github.com/Roshick/go-autumn-web v1.0.6
-	github.com/Roshick/manifest-maestro-api v1.4.0
+	github.com/Roshick/manifest-maestro-api v1.5.0
 	github.com/StephanHCB/go-autumn-logging v0.4.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.17.0
 	github.com/caarlos0/env/v11 v11.3.1
