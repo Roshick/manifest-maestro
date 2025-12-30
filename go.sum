@@ -33,6 +33,8 @@ github.com/Roshick/go-autumn-web v1.0.6 h1:GzRIH4GXYA2ZDJyuxdGI/n3deAfSxdnfwxQE7
 github.com/Roshick/go-autumn-web v1.0.6/go.mod h1:ft0K1XAYZN5P0tbdVA+yxci1bP3RyTZkYit89CFLQKc=
 github.com/Roshick/manifest-maestro-api v1.4.0 h1:VWhg1vFw/R4lFFONE9P/UBSu0tQHFzv9e64Y9v3G8lU=
 github.com/Roshick/manifest-maestro-api v1.4.0/go.mod h1:RRRhF9TYt0MS1t2Ko5MkLdeps3dpDsW9q364e30Q89E=
+github.com/Roshick/manifest-maestro-api v1.4.1-0.20251230121133-568825123920/go.mod h1:RRRhF9TYt0MS1t2Ko5MkLdeps3dpDsW9q364e30Q89E=
+github.com/Roshick/manifest-maestro-api v1.5.0/go.mod h1:RRRhF9TYt0MS1t2Ko5MkLdeps3dpDsW9q364e30Q89E=
 github.com/StephanHCB/go-autumn-config-api v0.2.2 h1:A+DO0JT0dc/4e/UN6XwYCE7VNCXHL5Xlg8UrAqTbNXE=
 github.com/StephanHCB/go-autumn-config-api v0.2.2/go.mod h1:6nJBwuT1uURHApOSFr6Rw+naK2YkO+sAduwEWZ0qsSU=
 github.com/StephanHCB/go-autumn-logging v0.4.0 h1:/EC41JJBi1Ao8eFmx4jReokJsbKsRoMoGTaCJZ/Nins=
