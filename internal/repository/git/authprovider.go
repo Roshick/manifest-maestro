@@ -28,7 +28,8 @@ func NewGitHubAppAuthProvider(
 }
 
 func (p *GitHubAppAuthProvider) GetAuth(ctx context.Context) (transport.AuthMethod, error) {
-	if p.token == nil || p.token.GetExpiresAt().Before(time.Now().Add(-30*time.Second)) {
+	next30Seconds := time.Now().Add(30 * time.Second)
+	if p.token == nil || p.token.GetExpiresAt().Before(next30Seconds) {
 		var err error
 		p.token, _, err = p.client.Apps.CreateInstallationToken(ctx, p.appInstallationID, nil)
 		if err != nil {
