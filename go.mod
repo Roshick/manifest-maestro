@@ -12,7 +12,7 @@ require (
 	github.com/StephanHCB/go-autumn-logging v0.4.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.17.0
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
 	github.com/go-git/go-billy/v5 v5.7.0
 	github.com/go-git/go-git/v5 v5.16.4
