@@ -15,6 +15,9 @@ import (
 	"github.com/Roshick/go-autumn-web/resiliency"
 	"github.com/Roshick/go-autumn-web/security"
 	"github.com/Roshick/go-autumn-web/tracing"
+	openapi "github.com/Roshick/manifest-maestro-api"
+	"github.com/Roshick/manifest-maestro/internal/utils"
+	"github.com/Roshick/manifest-maestro/internal/web/controller"
 
 	"github.com/Roshick/manifest-maestro/internal/config"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
@@ -97,7 +100,11 @@ func (s *Server) setupRootMiddlewares(_ context.Context) {
 
 	s.Router.Use(metrics.NewRequestMetricsMiddleware(nil))
 
-	s.Router.Use(resiliency.NewPanicRecoveryMiddleware(nil))
+	s.Router.Use(resiliency.NewPanicRecoveryMiddleware(&resiliency.RecoveryMiddlewareOptions{
+		ErrorResponse: &controller.APIError{StatusCode: http.StatusInternalServerError, Error: openapi.Error{
+			Title: utils.Ptr("Internal server error"),
+		}},
+	}))
 }
 
 func (s *Server) NewServer(ctx context.Context, address string, router http.Handler) *http.Server {
