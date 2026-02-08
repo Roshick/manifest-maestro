@@ -8,9 +8,11 @@ import (
 	openapi "github.com/Roshick/manifest-maestro-api"
 	"github.com/Roshick/manifest-maestro/internal/utils"
 	"github.com/mitchellh/copystructure"
-	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/engine"
-	"helm.sh/helm/v3/pkg/releaseutil"
+	"helm.sh/helm/v4/pkg/chart/common"
+	"helm.sh/helm/v4/pkg/chart/common/util"
+	v2cutil "helm.sh/helm/v4/pkg/chart/v2/util"
+	"helm.sh/helm/v4/pkg/engine"
+	v1rutil "helm.sh/helm/v4/pkg/release/v1/util"
 	"sigs.k8s.io/yaml"
 )
 
@@ -56,31 +58,31 @@ func (r *ChartRenderer) render(
 		return nil, nil, err
 	}
 
-	if err = chartutil.ProcessDependencies(helmChart.chart, allValues); err != nil {
+	if err = v2cutil.ProcessDependencies(helmChart.chart, allValues); err != nil {
 		return nil, nil, err
 	}
 
-	options := chartutil.ReleaseOptions{
+	options := common.ReleaseOptions{
 		Name:      utils.DefaultIfEmpty(actualParameters.ReleaseName, defaultReleaseName),
 		Namespace: utils.DefaultIfEmpty(actualParameters.Namespace, defaultNamespace),
 	}
 
-	capabilities := chartutil.DefaultCapabilities.Copy()
+	capabilities := common.DefaultCapabilities.Copy()
 	capabilities.APIVersions = append(capabilities.APIVersions, r.defaultKubernetesAPIVersions...)
 	capabilities.APIVersions = append(capabilities.APIVersions, actualParameters.ApiVersions...)
-	renderValues, err := chartutil.ToRenderValues(helmChart.chart, allValues, options, capabilities)
+	renderValues, err := util.ToRenderValues(helmChart.chart, allValues, options, capabilities)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var mergedValues map[string]any
 	if values, ok := renderValues.AsMap()["Values"]; ok {
-		if typedValues, innerOk := values.(chartutil.Values); innerOk {
+		if typedValues, innerOk := values.(common.Values); innerOk {
 			valuesCopy, innerErr := copystructure.Copy(typedValues)
 			if innerErr != nil {
 				return nil, nil, fmt.Errorf("failed to copy values: %w", innerErr)
 			}
-			mergedValues = valuesCopy.(chartutil.Values).AsMap()
+			mergedValues = valuesCopy.(common.Values).AsMap()
 		}
 	}
 	metadata := &openapi.HelmRenderMetadata{
@@ -110,10 +112,10 @@ func (r *ChartRenderer) render(
 		}
 	}
 
-	hooks, manifests, err := releaseutil.SortManifests(
+	hooks, manifests, err := v1rutil.SortManifests(
 		templateFiles,
 		capabilities.APIVersions,
-		releaseutil.InstallOrder,
+		v1rutil.InstallOrder,
 	)
 	if err != nil {
 		return nil, nil, err

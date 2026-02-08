@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"strings"
 
-	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/registry"
+	"helm.sh/helm/v4/pkg/getter"
+	"helm.sh/helm/v4/pkg/registry"
 
 	"github.com/caarlos0/env/v11"
 )

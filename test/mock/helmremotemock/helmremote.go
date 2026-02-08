@@ -3,8 +3,8 @@ package helmremotemock
 import (
 	"context"
 
-	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v4/pkg/getter"
+	"helm.sh/helm/v4/pkg/repo/v1"
 )
 
 type Impl struct {

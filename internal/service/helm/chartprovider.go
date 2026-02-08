@@ -13,9 +13,10 @@ import (
 	"github.com/Roshick/manifest-maestro/internal/utils"
 	"github.com/Roshick/manifest-maestro/pkg/filesystem"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/ignore"
+	"helm.sh/helm/v4/pkg/chart/loader/archive"
+	chart "helm.sh/helm/v4/pkg/chart/v2"
+	"helm.sh/helm/v4/pkg/chart/v2/loader"
+	"helm.sh/helm/v4/pkg/ignore"
 )
 
 const (
@@ -198,7 +199,7 @@ func (p *ChartProvider) loadChart(
 	}
 	rules.AddDefaults()
 
-	files := make([]*loader.BufferedFile, 0)
+	files := make([]*archive.BufferedFile, 0)
 	walk := func(filePath string, fileInfo fs.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -227,7 +228,7 @@ func (p *ChartProvider) loadChart(
 		if err != nil {
 			return fmt.Errorf("error reading %s: %w", newFilePath, err)
 		}
-		files = append(files, &loader.BufferedFile{Name: filepath.ToSlash(newFilePath), Data: data})
+		files = append(files, &archive.BufferedFile{Name: filepath.ToSlash(newFilePath), Data: data})
 		return nil
 	}
 
