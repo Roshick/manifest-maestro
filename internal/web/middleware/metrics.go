@@ -2,13 +2,14 @@ package middleware
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	aulogging "github.com/StephanHCB/go-autumn-logging"
-	"github.com/google/go-github/v80/github"
+	"github.com/google/go-github/v82/github"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"net/http"
-	"time"
 )
 
 // RecordRequestMetrics //
@@ -42,7 +43,10 @@ func RecordGitHubRateLimitMetrics(options RecordGitHubRateLimitMetricsOptions) f
 			timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 			defer cancel()
 			if limits, _, err := options.Client.RateLimit.Get(timeoutCtx); err != nil {
-				aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("failed to update rate limits for github application %d", options.AppID)
+				aulogging.Logger.Ctx(ctx).
+					Warn().
+					WithErr(err).
+					Printf("failed to update rate limits for github application %d", options.AppID)
 			} else {
 				apiRequestsLimit.Record(ctx, int64(limits.Core.Limit), metric.WithAttributes(
 					attribute.Int64("github_app_id", options.AppID),

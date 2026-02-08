@@ -71,7 +71,11 @@ func (c *GitRepositoryCache) RetrieveRepositoryToFileSystem(
 	return nil
 }
 
-func (c *GitRepositoryCache) refreshRepository(ctx context.Context, repositoryURL string, gitReference string) ([]byte, error) {
+func (c *GitRepositoryCache) refreshRepository(
+	ctx context.Context,
+	repositoryURL string,
+	gitReference string,
+) ([]byte, error) {
 	commitHash, err := c.git.ToHash(ctx, repositoryURL, gitReference)
 	if err != nil {
 		return nil, err
@@ -91,7 +95,11 @@ func (c *GitRepositoryCache) refreshRepository(ctx context.Context, repositoryUR
 	return tarball, nil
 }
 
-func (c *GitRepositoryCache) fetchAsTarball(ctx context.Context, repositoryURL string, commitHash string) ([]byte, error) {
+func (c *GitRepositoryCache) fetchAsTarball(
+	ctx context.Context,
+	repositoryURL string,
+	commitHash string,
+) ([]byte, error) {
 	repo, err := c.git.CloneCommit(ctx, repositoryURL, commitHash)
 	if err != nil {
 		return nil, err

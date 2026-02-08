@@ -27,7 +27,11 @@ type HelmChartCache struct {
 	cache      cache.Cache[[]byte]
 }
 
-func NewHelmChartCache(helmRemote HelmChartRemote, indexCache *HelmIndexCache, cache cache.Cache[[]byte]) *HelmChartCache {
+func NewHelmChartCache(
+	helmRemote HelmChartRemote,
+	indexCache *HelmIndexCache,
+	cache cache.Cache[[]byte],
+) *HelmChartCache {
 	return &HelmChartCache{
 		helmRemote: helmRemote,
 		indexCache: indexCache,
@@ -35,16 +39,27 @@ func NewHelmChartCache(helmRemote HelmChartRemote, indexCache *HelmIndexCache, c
 	}
 }
 
-func (c *HelmChartCache) RetrieveChart(ctx context.Context, chartReference openapi.HelmChartRepositoryChartReference) ([]byte, error) {
-	if strings.HasPrefix(chartReference.RepositoryURL, "https://") || strings.HasPrefix(chartReference.RepositoryURL, "http://") {
+func (c *HelmChartCache) RetrieveChart(
+	ctx context.Context,
+	chartReference openapi.HelmChartRepositoryChartReference,
+) ([]byte, error) {
+	if strings.HasPrefix(chartReference.RepositoryURL, "https://") ||
+		strings.HasPrefix(chartReference.RepositoryURL, "http://") {
 		return c.retrieveHelmChartViaHTTP(ctx, chartReference)
-	} else if strings.HasPrefix(chartReference.RepositoryURL, "oci://") {
+	} else if strings.HasPrefix(
+		chartReference.RepositoryURL,
+		"oci://",
+	) {
 		return c.retrieveHelmChartViaOCI(ctx, chartReference)
 	}
 	return nil, NewInvalidHelmRepositoryURLError(chartReference.RepositoryURL)
 }
 
-func (c *HelmChartCache) RetrieveChartToFileSystem(ctx context.Context, chartReference openapi.HelmChartRepositoryChartReference, fileSystem *filesystem.FileSystem) error {
+func (c *HelmChartCache) RetrieveChartToFileSystem(
+	ctx context.Context,
+	chartReference openapi.HelmChartRepositoryChartReference,
+	fileSystem *filesystem.FileSystem,
+) error {
 	tarball, err := c.RetrieveChart(ctx, chartReference)
 	if err != nil {
 		return err
@@ -55,7 +70,10 @@ func (c *HelmChartCache) RetrieveChartToFileSystem(ctx context.Context, chartRef
 	return nil
 }
 
-func (c *HelmChartCache) retrieveHelmChartViaOCI(ctx context.Context, chartReference openapi.HelmChartRepositoryChartReference) ([]byte, error) {
+func (c *HelmChartCache) retrieveHelmChartViaOCI(
+	ctx context.Context,
+	chartReference openapi.HelmChartRepositoryChartReference,
+) ([]byte, error) {
 	chartURL, err := url.JoinPath(chartReference.RepositoryURL, chartReference.ChartName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct chart url: %w", err)
@@ -97,7 +115,10 @@ func (c *HelmChartCache) retrieveHelmChartViaOCI(ctx context.Context, chartRefer
 	return chartBytes, nil
 }
 
-func (c *HelmChartCache) retrieveHelmChartViaHTTP(ctx context.Context, chartReference openapi.HelmChartRepositoryChartReference) ([]byte, error) {
+func (c *HelmChartCache) retrieveHelmChartViaHTTP(
+	ctx context.Context,
+	chartReference openapi.HelmChartRepositoryChartReference,
+) ([]byte, error) {
 	index, err := c.indexCache.RetrieveIndex(ctx, chartReference.RepositoryURL)
 	if err != nil {
 		return nil, err
@@ -106,7 +127,11 @@ func (c *HelmChartCache) retrieveHelmChartViaHTTP(ctx context.Context, chartRefe
 	chartVersion := utils.DefaultIfNil(chartReference.ChartVersion, "")
 	chartEntry, err := index.Get(chartReference.ChartName, chartVersion)
 	if err != nil || len(chartEntry.URLs) == 0 {
-		return nil, helmremote.NewRepositoryChartNotFoundError(chartReference.RepositoryURL, chartReference.ChartName, chartVersion)
+		return nil, helmremote.NewRepositoryChartNotFoundError(
+			chartReference.RepositoryURL,
+			chartReference.ChartName,
+			chartVersion,
+		)
 	}
 
 	chartURL := chartEntry.URLs[0]

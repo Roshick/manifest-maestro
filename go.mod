@@ -18,12 +18,12 @@ require (
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/gofri/go-github-pagination v1.0.1
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
-	github.com/google/go-github/v80 v80.0.0
+	github.com/google/go-github/v82 v82.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/riandyrn/otelchi v0.12.2
-	github.com/swaggo/http-swagger v1.3.4
+	github.com/swaggo/http-swagger/v2 v2.0.3-0.20250902111949-1340604bd9f5
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.40.0
@@ -160,7 +160,7 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/swaggo/files v1.0.1 // indirect
+	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/swaggo/swag v1.16.6 // indirect
 	github.com/valyala/fastjson v1.6.7 // indirect
 	github.com/x448/float16 v0.8.4 // indirect

@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-git/go-git/v5/plumbing/transport"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/go-git/go-git/v5/plumbing/transport"
 
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5/storage/memory"

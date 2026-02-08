@@ -20,10 +20,10 @@ const (
 )
 
 type LoggingConfig struct {
-	LogStyle                LogType                 `env:"LOG_STYLE" envDefault:"PLAIN"`
-	LogLevel                slog.Level              `env:"LOG_LEVEL" envDefault:"INFO"`
+	LogStyle                LogType                 `env:"LOG_STYLE"                  envDefault:"PLAIN"`
+	LogLevel                slog.Level              `env:"LOG_LEVEL"                  envDefault:"INFO"`
 	LogAttributeKeyMappings map[string]string       `env:"LOG_ATTRIBUTE_KEY_MAPPINGS" envDefault:"{\"time\": \"@timestamp\",\"level\": \"log.level\",\"msg\": \"message\",\"error\": \"error.message\"}"`
-	TimeTransformer         logging.TimeTransformer `env:"LOG_TIME_TRANSFORMER" envDefault:"UTC"`
+	TimeTransformer         logging.TimeTransformer `env:"LOG_TIME_TRANSFORMER"       envDefault:"UTC"`
 }
 
 func NewLoggingConfig() *LoggingConfig {

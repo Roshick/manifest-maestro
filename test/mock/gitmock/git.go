@@ -2,13 +2,14 @@ package gitmock
 
 import (
 	"context"
+	"io"
+	"os"
+	"path/filepath"
+
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"io"
-	"os"
-	"path/filepath"
 )
 
 type Impl struct {

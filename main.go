@@ -2,11 +2,12 @@ package main
 
 import (
 	"errors"
-	"github.com/Roshick/manifest-maestro/internal/wiring"
-	"github.com/joho/godotenv"
 	"io/fs"
 	"log"
 	"os"
+
+	"github.com/Roshick/manifest-maestro/internal/wiring"
+	"github.com/joho/godotenv"
 )
 
 func main() {

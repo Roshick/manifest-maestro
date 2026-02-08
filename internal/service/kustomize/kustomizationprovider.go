@@ -20,11 +20,17 @@ func NewKustomizationProvider(gitRepositoryCache *cache.GitRepositoryCache) *Kus
 	}
 }
 
-func (p *KustomizationProvider) GetKustomization(ctx context.Context, abstractReference openapi.GitRepositoryPathReference) (*Kustomization, error) {
+func (p *KustomizationProvider) GetKustomization(
+	ctx context.Context,
+	abstractReference openapi.GitRepositoryPathReference,
+) (*Kustomization, error) {
 	return p.getKustomizationFromGitRepositoryPathReference(ctx, abstractReference)
 }
 
-func (p *KustomizationProvider) getKustomizationFromGitRepositoryPathReference(ctx context.Context, reference openapi.GitRepositoryPathReference) (*Kustomization, error) {
+func (p *KustomizationProvider) getKustomizationFromGitRepositoryPathReference(
+	ctx context.Context,
+	reference openapi.GitRepositoryPathReference,
+) (*Kustomization, error) {
 	fileSystem := filesystem.New()
 
 	targetPath := fileSystem.Root
@@ -35,7 +41,12 @@ func (p *KustomizationProvider) getKustomizationFromGitRepositoryPathReference(c
 		targetPath = fileSystem.Join(targetPath, *reference.Path)
 	}
 
-	err := p.gitRepositoryCache.RetrieveRepositoryToFileSystem(ctx, reference.RepositoryURL, reference.Reference, fileSystem)
+	err := p.gitRepositoryCache.RetrieveRepositoryToFileSystem(
+		ctx,
+		reference.RepositoryURL,
+		reference.Reference,
+		fileSystem,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +54,11 @@ func (p *KustomizationProvider) getKustomizationFromGitRepositoryPathReference(c
 	return p.buildKustomization(ctx, fileSystem, targetPath)
 }
 
-func (p *KustomizationProvider) buildKustomization(_ context.Context, fileSystem *filesystem.FileSystem, targetPath string) (*Kustomization, error) {
+func (p *KustomizationProvider) buildKustomization(
+	_ context.Context,
+	fileSystem *filesystem.FileSystem,
+	targetPath string,
+) (*Kustomization, error) {
 	return &Kustomization{
 		fileSystem: fileSystem,
 		targetPath: targetPath,

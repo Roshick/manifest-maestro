@@ -13,7 +13,7 @@ import (
 	"github.com/Roshick/manifest-maestro/internal/client"
 	"github.com/Roshick/manifest-maestro/internal/service/cache"
 	"github.com/Roshick/manifest-maestro/internal/web/controller"
-	"github.com/google/go-github/v80/github"
+	"github.com/google/go-github/v82/github"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -23,7 +23,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/Roshick/go-autumn-slog/pkg/logging"
-	"github.com/Roshick/go-autumn-vault"
+	vault "github.com/Roshick/go-autumn-vault"
 	"github.com/Roshick/manifest-maestro/internal/config"
 	"github.com/Roshick/manifest-maestro/internal/repository/clock"
 	augit "github.com/Roshick/manifest-maestro/internal/repository/git"
@@ -41,7 +41,12 @@ type Clock interface {
 type ClientFactory interface {
 	NewHTTPClient(clientName string, opts *client.HTTPClientOptions) (*http.Client, error)
 
-	NewGitHubClient(appID int64, appInstallationID int64, privateKey *rsa.PrivateKey, opts *client.GitHubClientOptions) (*github.Client, error)
+	NewGitHubClient(
+		appID int64,
+		appInstallationID int64,
+		privateKey *rsa.PrivateKey,
+		opts *client.GitHubClientOptions,
+	) (*github.Client, error)
 }
 
 type Git interface {
@@ -301,7 +306,10 @@ func (a *Application) createGitHub(_ context.Context) error {
 
 	if a.GitHubClient == nil {
 		a.GitHubClient, err = a.ClientFactory.NewGitHubClient(
-			a.ApplicationCfg.GitHubAppID, a.ApplicationCfg.GitHubAppInstallationID, &a.ApplicationCfg.GitHubAppPrivateKey, nil,
+			a.ApplicationCfg.GitHubAppID,
+			a.ApplicationCfg.GitHubAppInstallationID,
+			&a.ApplicationCfg.GitHubAppPrivateKey,
+			nil,
 		)
 		if err != nil {
 			return err
@@ -400,7 +408,11 @@ func (a *Application) createSwaggerController(_ context.Context) {
 }
 
 func (a *Application) createMetricsController(_ context.Context) {
-	a.MetricsCtl = controller.NewMetricsController(a.GitHubClient, a.ApplicationCfg.GitHubAppID, a.ApplicationCfg.GitHubAppInstallationID)
+	a.MetricsCtl = controller.NewMetricsController(
+		a.GitHubClient,
+		a.ApplicationCfg.GitHubAppID,
+		a.ApplicationCfg.GitHubAppInstallationID,
+	)
 }
 
 func (a *Application) createProfilerController(_ context.Context) {
@@ -408,7 +420,13 @@ func (a *Application) createProfilerController(_ context.Context) {
 }
 
 func (a *Application) createV1Controller(_ context.Context) {
-	a.V1Ctl = controller.NewV1Controller(a.Clock, a.HelmChartProvider, a.HelmChartRenderer, a.KustomizationProvider, a.KustomizationRenderer)
+	a.V1Ctl = controller.NewV1Controller(
+		a.Clock,
+		a.HelmChartProvider,
+		a.HelmChartRenderer,
+		a.KustomizationProvider,
+		a.KustomizationRenderer,
+	)
 }
 
 func (a *Application) createServer(ctx context.Context) error {

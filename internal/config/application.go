@@ -39,16 +39,16 @@ type ApplicationConfig struct {
 	ServerAddress     string `env:"SERVER_ADDRESS"`
 	ServerPrimaryPort uint   `env:"SERVER_PRIMARY_PORT" envDefault:"8080"`
 
-	HelmDefaultReleaseName           string            `env:"HELM_DEFAULT_RELEASE_NAME" envDefault:"RELEASE-NAME"`
-	HelmDefaultKubernetesNamespace   string            `env:"HELM_DEFAULT_KUBERNETES_NAMESPACE" envDefault:"default"`
+	HelmDefaultReleaseName           string            `env:"HELM_DEFAULT_RELEASE_NAME"            envDefault:"RELEASE-NAME"`
+	HelmDefaultKubernetesNamespace   string            `env:"HELM_DEFAULT_KUBERNETES_NAMESPACE"    envDefault:"default"`
 	HelmDefaultKubernetesAPIVersions []string          `env:"HELM_DEFAULT_KUBERNETES_API_VERSIONS" envDefault:"[]"`
-	HelmHostProviders                HelmHostProviders `env:"HELM_HOST_PROVIDERS" envDefault:"{}"`
+	HelmHostProviders                HelmHostProviders `env:"HELM_HOST_PROVIDERS"                  envDefault:"{}"`
 
 	GitHubAppID             int64          `env:"GITHUB_APP_ID"`
 	GitHubAppInstallationID int64          `env:"GITHUB_APP_INSTALLATION_ID"`
 	GitHubAppPrivateKey     rsa.PrivateKey `env:"GITHUB_APP_PRIVATE_KEY"`
 
-	SynchronizationMethod        SynchronizationMethod `env:"SYNCHRONIZATION_METHOD" envDefault:"MEMORY"`
+	SynchronizationMethod        SynchronizationMethod `env:"SYNCHRONIZATION_METHOD"         envDefault:"MEMORY"`
 	SynchronizationRedisURL      string                `env:"SYNCHRONIZATION_REDIS_URL"`
 	SynchronizationRedisPassword string                `env:"SYNCHRONIZATION_REDIS_PASSWORD"`
 }

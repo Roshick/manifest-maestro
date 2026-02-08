@@ -5,15 +5,22 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
-	"github.com/Roshick/manifest-maestro/pkg/filesystem"
 	"io"
 	"io/fs"
 	"strings"
 
+	"github.com/Roshick/manifest-maestro/pkg/filesystem"
+
 	aulogging "github.com/StephanHCB/go-autumn-logging"
 )
 
-func Compress(ctx context.Context, fileSystem *filesystem.FileSystem, sourcePath string, targetSubPath string, targetWriter io.Writer) error {
+func Compress(
+	ctx context.Context,
+	fileSystem *filesystem.FileSystem,
+	sourcePath string,
+	targetSubPath string,
+	targetWriter io.Writer,
+) error {
 	if !fileSystem.Exists(sourcePath) {
 		return fmt.Errorf("file at '%s' does not exist", sourcePath)
 	}
