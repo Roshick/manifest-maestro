@@ -16,7 +16,12 @@ type GithubAuthTransport struct {
 	privateKey        *rsa.PrivateKey
 }
 
-func NewGitHubAuthTransport(rt http.RoundTripper, appID int64, appInstallationID int64, privateKey *rsa.PrivateKey) *GithubAuthTransport {
+func NewGitHubAuthTransport(
+	rt http.RoundTripper,
+	appID int64,
+	appInstallationID int64,
+	privateKey *rsa.PrivateKey,
+) *GithubAuthTransport {
 	if rt == nil {
 		rt = http.DefaultTransport
 	}

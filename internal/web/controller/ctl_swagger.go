@@ -6,7 +6,7 @@ import (
 
 	openapi "github.com/Roshick/manifest-maestro-api"
 	"github.com/go-chi/chi/v5"
-	swagger "github.com/swaggo/http-swagger"
+	swagger "github.com/swaggo/http-swagger/v2"
 )
 
 func NewSwaggerController() *SwaggerController {

@@ -17,7 +17,11 @@ func NewKustomizationRenderer() *KustomizationRenderer {
 	return &KustomizationRenderer{}
 }
 
-func (k *KustomizationRenderer) Render(ctx context.Context, kustomization *Kustomization, parameters *openapi.KustomizeRenderParameters) ([]openapi.Manifest, error) {
+func (k *KustomizationRenderer) Render(
+	ctx context.Context,
+	kustomization *Kustomization,
+	parameters *openapi.KustomizeRenderParameters,
+) ([]openapi.Manifest, error) {
 	manifest, err := k.render(ctx, kustomization, parameters)
 	if err != nil {
 		return nil, NewKustomizationRenderError(err)
@@ -25,7 +29,11 @@ func (k *KustomizationRenderer) Render(ctx context.Context, kustomization *Kusto
 	return manifest, nil
 }
 
-func (k *KustomizationRenderer) render(_ context.Context, kustomization *Kustomization, parameters *openapi.KustomizeRenderParameters) ([]openapi.Manifest, error) {
+func (k *KustomizationRenderer) render(
+	_ context.Context,
+	kustomization *Kustomization,
+	parameters *openapi.KustomizeRenderParameters,
+) ([]openapi.Manifest, error) {
 	kustomizer := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
 
 	for _, injection := range parameters.ManifestInjections {
@@ -46,7 +54,10 @@ func (k *KustomizationRenderer) render(_ context.Context, kustomization *Kustomi
 		}
 		fileContent := []byte(strings.Join(yamlDocs, "---\n"))
 
-		if err := kustomization.fileSystem.WriteFile(kustomization.fileSystem.Join(kustomization.targetPath, injection.FileName), fileContent); err != nil {
+		if err := kustomization.fileSystem.WriteFile(
+			kustomization.fileSystem.Join(kustomization.targetPath, injection.FileName),
+			fileContent,
+		); err != nil {
 			return nil, err
 		}
 	}

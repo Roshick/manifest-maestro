@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/google/go-github/v80/github"
+	"github.com/google/go-github/v82/github"
 )
 
 type GitHubAppAuthProvider struct {

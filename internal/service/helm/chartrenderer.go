@@ -29,7 +29,11 @@ func NewChartRenderer(defaultKubernetesAPIVersions []string) *ChartRenderer {
 	}
 }
 
-func (r *ChartRenderer) Render(ctx context.Context, helmChart *Chart, parameters *openapi.HelmRenderParameters) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
+func (r *ChartRenderer) Render(
+	ctx context.Context,
+	helmChart *Chart,
+	parameters *openapi.HelmRenderParameters,
+) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
 	manifests, metadata, err := r.render(ctx, helmChart, parameters)
 	if err != nil {
 		return nil, nil, NewChartRenderError(err)
@@ -37,7 +41,11 @@ func (r *ChartRenderer) Render(ctx context.Context, helmChart *Chart, parameters
 	return manifests, metadata, nil
 }
 
-func (r *ChartRenderer) render(ctx context.Context, helmChart *Chart, parameters *openapi.HelmRenderParameters) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
+func (r *ChartRenderer) render(
+	ctx context.Context,
+	helmChart *Chart,
+	parameters *openapi.HelmRenderParameters,
+) ([]openapi.Manifest, *openapi.HelmRenderMetadata, error) {
 	actualParameters := openapi.HelmRenderParameters{}
 	if parameters != nil {
 		actualParameters = *parameters
@@ -102,7 +110,11 @@ func (r *ChartRenderer) render(ctx context.Context, helmChart *Chart, parameters
 		}
 	}
 
-	hooks, manifests, err := releaseutil.SortManifests(templateFiles, capabilities.APIVersions, releaseutil.InstallOrder)
+	hooks, manifests, err := releaseutil.SortManifests(
+		templateFiles,
+		capabilities.APIVersions,
+		releaseutil.InstallOrder,
+	)
 	if err != nil {
 		return nil, nil, err
 	}

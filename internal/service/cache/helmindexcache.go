@@ -49,16 +49,23 @@ func (c *HelmIndexCache) RetrieveIndex(ctx context.Context, repositoryURL string
 		return c.parseIndex(*cached)
 	}
 
-	aulogging.Logger.Ctx(ctx).Info().Printf("cache miss for helm repository index with key '%s', retrieving from remote", repositoryURL)
+	aulogging.Logger.Ctx(ctx).
+		Info().
+		Printf("cache miss for helm repository index with key '%s', retrieving from remote", repositoryURL)
 	indexBytes, err := c.helmRemote.GetIndex(ctx, *parsedURL)
 	if err != nil {
 		return nil, err
 	}
 
 	if err = c.cache.Set(ctx, cacheKey, indexBytes, 15*time.Minute); err != nil {
-		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("failed to cache helm repository index with key '%s'", repositoryURL)
+		aulogging.Logger.Ctx(ctx).
+			Warn().
+			WithErr(err).
+			Printf("failed to cache helm repository index with key '%s'", repositoryURL)
 	} else {
-		aulogging.Logger.Ctx(ctx).Info().Printf("successfully cached helm repository index with key '%s'", repositoryURL)
+		aulogging.Logger.Ctx(ctx).
+			Info().
+			Printf("successfully cached helm repository index with key '%s'", repositoryURL)
 	}
 
 	return c.parseIndex(indexBytes)

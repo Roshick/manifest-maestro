@@ -27,14 +27,20 @@ type ChartProvider struct {
 	gitRepositoryCache *cache.GitRepositoryCache
 }
 
-func NewChartProvider(helmChartCache *cache.HelmChartCache, gitRepositoryCache *cache.GitRepositoryCache) *ChartProvider {
+func NewChartProvider(
+	helmChartCache *cache.HelmChartCache,
+	gitRepositoryCache *cache.GitRepositoryCache,
+) *ChartProvider {
 	return &ChartProvider{
 		helmChartCache:     helmChartCache,
 		gitRepositoryCache: gitRepositoryCache,
 	}
 }
 
-func (p *ChartProvider) GetHelmChart(ctx context.Context, abstractReference openapi.HelmChartReference) (*Chart, error) {
+func (p *ChartProvider) GetHelmChart(
+	ctx context.Context,
+	abstractReference openapi.HelmChartReference,
+) (*Chart, error) {
 	if reference := abstractReference.HelmChartRepositoryChartReference; reference != nil {
 		return p.getHelmChartFromHelmRepositoryChartReference(ctx, *reference)
 	}
@@ -44,7 +50,10 @@ func (p *ChartProvider) GetHelmChart(ctx context.Context, abstractReference open
 	return nil, NewChartReferenceInvalidError()
 }
 
-func (p *ChartProvider) getHelmChartFromGitRepositoryPathReference(ctx context.Context, reference openapi.GitRepositoryPathReference) (*Chart, error) {
+func (p *ChartProvider) getHelmChartFromGitRepositoryPathReference(
+	ctx context.Context,
+	reference openapi.GitRepositoryPathReference,
+) (*Chart, error) {
 	fileSystem := filesystem.New()
 
 	targetPath := fileSystem.Root
@@ -55,7 +64,12 @@ func (p *ChartProvider) getHelmChartFromGitRepositoryPathReference(ctx context.C
 		targetPath = fileSystem.Join(targetPath, *reference.Path)
 	}
 
-	err := p.gitRepositoryCache.RetrieveRepositoryToFileSystem(ctx, reference.RepositoryURL, reference.Reference, fileSystem)
+	err := p.gitRepositoryCache.RetrieveRepositoryToFileSystem(
+		ctx,
+		reference.RepositoryURL,
+		reference.Reference,
+		fileSystem,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +81,10 @@ func (p *ChartProvider) getHelmChartFromGitRepositoryPathReference(ctx context.C
 	return helmChart, nil
 }
 
-func (p *ChartProvider) getHelmChartFromHelmRepositoryChartReference(ctx context.Context, reference openapi.HelmChartRepositoryChartReference) (*Chart, error) {
+func (p *ChartProvider) getHelmChartFromHelmRepositoryChartReference(
+	ctx context.Context,
+	reference openapi.HelmChartRepositoryChartReference,
+) (*Chart, error) {
 	fileSystem := filesystem.New()
 
 	err := p.helmChartCache.RetrieveChartToFileSystem(ctx, reference, fileSystem)
@@ -83,7 +100,11 @@ func (p *ChartProvider) getHelmChartFromHelmRepositoryChartReference(ctx context
 	return helmChart, nil
 }
 
-func (p *ChartProvider) buildChart(ctx context.Context, fileSystem *filesystem.FileSystem, targetPath string) (*Chart, error) {
+func (p *ChartProvider) buildChart(
+	ctx context.Context,
+	fileSystem *filesystem.FileSystem,
+	targetPath string,
+) (*Chart, error) {
 	aulogging.Logger.Ctx(ctx).Info().Printf("building chart at %s", targetPath)
 
 	helmChart, err := p.loadChart(ctx, fileSystem, targetPath)
@@ -153,7 +174,11 @@ func (p *ChartProvider) buildChart(ctx context.Context, fileSystem *filesystem.F
 	}, nil
 }
 
-func (p *ChartProvider) loadChart(ctx context.Context, fileSystem *filesystem.FileSystem, targetPath string) (*chart.Chart, error) {
+func (p *ChartProvider) loadChart(
+	ctx context.Context,
+	fileSystem *filesystem.FileSystem,
+	targetPath string,
+) (*chart.Chart, error) {
 	rules := ignore.Empty()
 	ignoreFilePath := fileSystem.Join(targetPath, ignore.HelmIgnore)
 	if fileSystem.Exists(ignoreFilePath) {

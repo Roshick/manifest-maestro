@@ -14,7 +14,7 @@ import (
 	"github.com/Roshick/go-autumn-web/tracing"
 	"github.com/gofri/go-github-pagination/githubpagination"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
-	"github.com/google/go-github/v80/github"
+	"github.com/google/go-github/v82/github"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -84,7 +84,12 @@ func DefaultGitHubClientOptions() *GitHubClientOptions {
 }
 
 //nolint:mnd // magic numbers are used for client configuration
-func (f *Factory) NewGitHubClient(appID int64, appInstallationID int64, privateKey *rsa.PrivateKey, opts *GitHubClientOptions) (*github.Client, error) {
+func (f *Factory) NewGitHubClient(
+	appID int64,
+	appInstallationID int64,
+	privateKey *rsa.PrivateKey,
+	opts *GitHubClientOptions,
+) (*github.Client, error) {
 	if opts == nil {
 		opts = DefaultGitHubClientOptions()
 	}

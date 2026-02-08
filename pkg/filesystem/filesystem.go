@@ -1,9 +1,10 @@
 package filesystem
 
 import (
-	"github.com/go-git/go-billy/v5"
 	"io"
 	"path/filepath"
+
+	"github.com/go-git/go-billy/v5"
 
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
