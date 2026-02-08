@@ -17,7 +17,7 @@ import (
 )
 
 type APIError struct {
-	openapi.ErrorResponse
+	openapi.Error
 	StatusCode int `json:"-"`
 }
 
@@ -35,58 +35,58 @@ func handleError(ctx context.Context, w http.ResponseWriter, r *http.Request, er
 func handleErrorWrapped(ctx context.Context, w http.ResponseWriter, r *http.Request, err error) error {
 	switch {
 	case errors.As(err, new(*helmremote.RepositoryNotFoundError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Helm repository not found"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*helmremote.RepositoryChartNotFoundError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Helm repository chart not found"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*helmremote.MissingProviderError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Helm repository provider missing"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*cache.InvalidHelmRepositoryURLError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Helm repository URL invalid"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*git.RepositoryNotFoundError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Git repository not found"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*git.RepositoryReferenceNotFoundError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Git repository reference not found"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*helm.ChartReferenceInvalidError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Helm chart reference invalid"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*helm.ChartBuildError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Failed to build Helm chart"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*helm.ChartRenderError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Failed to render Helm chart"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	case errors.As(err, new(*kustomize.KustomizationRenderError)):
-		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Failed to render Kustomize kustomization"),
 			Detail: utils.Ptr(err.Error()),
 		}})
 	default:
 		aulogging.Logger.Ctx(ctx).Error().WithErr(err).Printf("unhandled error occurred")
-		return render.Render(w, r, &APIError{StatusCode: http.StatusInternalServerError, ErrorResponse: openapi.ErrorResponse{
+		return render.Render(w, r, &APIError{StatusCode: http.StatusInternalServerError, Error: openapi.Error{
 			Title: utils.Ptr("Internal server error"),
 		}})
 	}

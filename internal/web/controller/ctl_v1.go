@@ -47,7 +47,7 @@ func NewV1Controller(
 
 func (c *V1Controller) WireUp(_ context.Context, r chi.Router) {
 	malformedBodyOptions := &validation.ContextRequestBodyMiddlewareOptions{
-		ErrorResponse: &APIError{StatusCode: http.StatusBadRequest, ErrorResponse: openapi.ErrorResponse{
+		ErrorResponse: &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title: utils.Ptr("Malformed body"),
 		}},
 	}
@@ -78,7 +78,7 @@ func (c *V1Controller) helmActionsListCharts(w http.ResponseWriter, r *http.Requ
 
 	// action := validation.RequestBodyFromContext[openapi.HelmListChartsAction](ctx)
 
-	if err := render.Render(w, r, &APIError{StatusCode: http.StatusInternalServerError, ErrorResponse: openapi.ErrorResponse{
+	if err := render.Render(w, r, &APIError{StatusCode: http.StatusInternalServerError, Error: openapi.Error{
 		Title: utils.Ptr("Internal server error"),
 	}}); err != nil {
 		panic(err)
@@ -90,7 +90,7 @@ func (c *V1Controller) helmActionsListChartVersions(w http.ResponseWriter, r *ht
 
 	// action := validation.RequestBodyFromContext[openapi.HelmListChartVersionsAction](ctx)
 
-	if err := render.Render(w, r, &APIError{StatusCode: http.StatusInternalServerError, ErrorResponse: openapi.ErrorResponse{
+	if err := render.Render(w, r, &APIError{StatusCode: http.StatusInternalServerError, Error: openapi.Error{
 		Title: utils.Ptr("Internal server error"),
 	}}); err != nil {
 		panic(err)
