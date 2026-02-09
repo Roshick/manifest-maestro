@@ -9,8 +9,7 @@ import (
 
 	"github.com/Roshick/go-autumn-synchronisation/pkg/cache"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v4/pkg/repo/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -95,7 +94,7 @@ func (c *HelmIndexCache) parseIndex(data []byte) (*repo.IndexFile, error) {
 				continue
 			}
 			if cvs[idx].APIVersion == "" {
-				cvs[idx].APIVersion = chart.APIVersionV1
+				cvs[idx].APIVersion = repo.APIVersionV1
 			}
 			if err := cvs[idx].Validate(); err != nil {
 				cvs = append(cvs[:idx], cvs[idx+1:]...)

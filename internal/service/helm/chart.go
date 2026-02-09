@@ -6,8 +6,8 @@ import (
 	openapi "github.com/Roshick/manifest-maestro-api"
 	"github.com/Roshick/manifest-maestro/internal/utils"
 	"github.com/Roshick/manifest-maestro/pkg/filesystem"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/strvals"
+	chart "helm.sh/helm/v4/pkg/chart/v2"
+	"helm.sh/helm/v4/pkg/strvals"
 	"sigs.k8s.io/yaml"
 )
 
