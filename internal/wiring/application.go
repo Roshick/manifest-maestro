@@ -13,7 +13,7 @@ import (
 	"github.com/Roshick/manifest-maestro/internal/client"
 	"github.com/Roshick/manifest-maestro/internal/service/cache"
 	"github.com/Roshick/manifest-maestro/internal/web/controller"
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
