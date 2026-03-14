@@ -27,8 +27,8 @@ github.com/Roshick/go-autumn-slog v0.3.2 h1:5S0BtvOIoLEF8oYPs3ZYed8wsPzRxXaZRKOX
 github.com/Roshick/go-autumn-slog v0.3.2/go.mod h1:3ssQHi5HlgYhfc5k4Z9CAabnfkR8oQ2PUw4yvENTnZo=
 github.com/Roshick/go-autumn-synchronisation v0.7.8 h1:zUrn9vbL7/oXy0qoMmNzXTnPpE9P3OOZkC5jwBUOdTA=
 github.com/Roshick/go-autumn-synchronisation v0.7.8/go.mod h1:+Gz72Qa2yJ3HBTbCetuE2y9nR6DUUtlwz5l08MmRuYI=
-github.com/Roshick/go-autumn-vault v0.2.0 h1:6ws9S2MsvA7h7OSFc2DBSAy78I9gY8cySIg3kXdip2U=
-github.com/Roshick/go-autumn-vault v0.2.0/go.mod h1:1PoIl2cTbE8jCQNxLgUb3KHXGSQ8pCuN3N4QvEzzk+4=
+github.com/Roshick/go-autumn-vault v0.2.2 h1:YOKTGkeoveq0mXFoWlOkiGvgTaCsc3f+IeKvVErNFYE=
+github.com/Roshick/go-autumn-vault v0.2.2/go.mod h1:k01/E/JP6MoPxBHXS/VPDBznhOofnyMluHiNPmD19aE=
 github.com/Roshick/go-autumn-web v1.0.7 h1:y0lEcU8DcP7wVI8pA3gZOS2CAQmX21XxZYpuv0BW6Vw=
 github.com/Roshick/go-autumn-web v1.0.7/go.mod h1:BfxDhXNgIfVmjvyFMt85kCC3uojrlTIG8ADb3DDZptU=
 github.com/Roshick/manifest-maestro-api v1.5.1 h1:BXZNvCUBT9qaWDgOxoYK8vDQ1cyMdm0powTBV6gmio8=
