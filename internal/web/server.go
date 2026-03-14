@@ -100,7 +100,7 @@ func (s *Server) setupRootMiddlewares(_ context.Context) {
 
 	s.Router.Use(metrics.NewRequestMetricsMiddleware(nil))
 
-	s.Router.Use(resiliency.NewPanicRecoveryMiddleware(&resiliency.RecoveryMiddlewareOptions{
+	s.Router.Use(resiliency.NewPanicRecoveryMiddleware(&resiliency.PanicRecoveryMiddlewareOptions{
 		ErrorResponse: &controller.APIError{StatusCode: http.StatusInternalServerError, Error: openapi.Error{
 			Title: utils.Ptr("Internal server error"),
 		}},

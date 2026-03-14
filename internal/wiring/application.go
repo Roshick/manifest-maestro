@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	aucache "github.com/Roshick/go-autumn-synchronisation/pkg/cache"
@@ -22,7 +21,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
 
-	"github.com/Roshick/go-autumn-slog/pkg/logging"
+	logging "github.com/Roshick/go-autumn-slog"
 	vault "github.com/Roshick/go-autumn-vault"
 	"github.com/Roshick/manifest-maestro/internal/config"
 	"github.com/Roshick/manifest-maestro/internal/repository/clock"
@@ -210,16 +209,12 @@ func (a *Application) createClock(_ context.Context) {
 }
 
 func (a *Application) createLogging(_ context.Context) error {
-	if a.Logger == nil {
-		loggingCfg := config.NewLoggingConfig()
-		if err := loggingCfg.ObtainValuesFromEnv(); err != nil {
-			return fmt.Errorf("failed to obtain logging config values from environment: %w", err)
-		}
+	var err error
 
-		if loggingCfg.LogStyle == config.LogStyleJSON {
-			a.Logger = slog.New(slog.NewJSONHandler(os.Stderr, loggingCfg.HandlerOptions()))
-		} else {
-			a.Logger = slog.New(slog.NewTextHandler(os.Stderr, loggingCfg.HandlerOptions()))
+	if a.Logger == nil {
+		a.Logger, err = logging.NewLoggerFromEnv()
+		if err != nil {
+			return fmt.Errorf("failed to construct logger from environment: %w", err)
 		}
 	}
 
