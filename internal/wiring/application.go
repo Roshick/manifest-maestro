@@ -22,7 +22,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 
 	logging "github.com/Roshick/go-autumn-slog"
-	vault "github.com/Roshick/go-autumn-vault"
 	"github.com/Roshick/manifest-maestro/internal/config"
 	"github.com/Roshick/manifest-maestro/internal/repository/clock"
 	augit "github.com/Roshick/manifest-maestro/internal/repository/git"
@@ -106,9 +105,6 @@ func (a *Application) Create(ctx context.Context) error {
 	a.createClientFactory(ctx)
 	if err := a.createLogging(ctx); err != nil {
 		return fmt.Errorf("failed to set up logging: %w", err)
-	}
-	if err := a.fetchVaultSecrets(ctx); err != nil {
-		return fmt.Errorf("failed to set up vault: %w", err)
 	}
 	if err := a.loadApplicationConfig(ctx); err != nil {
 		return fmt.Errorf("failed to load application config: %w", err)
@@ -220,25 +216,6 @@ func (a *Application) createLogging(_ context.Context) error {
 
 	slog.SetDefault(a.Logger)
 	aulogging.Logger = logging.New()
-	return nil
-}
-
-func (a *Application) fetchVaultSecrets(ctx context.Context) error {
-	vaultCfg := vault.NewConfig()
-	if err := vaultCfg.ObtainValuesFromEnv(); err != nil {
-		return fmt.Errorf("failed to obtain vault config values from environment: %w", err)
-	}
-	if !vaultCfg.Disabled {
-		vaultClient, err := a.ClientFactory.NewHTTPClient("vault", nil)
-		if err != nil {
-			return fmt.Errorf("failed to create vault http client: %w", err)
-		}
-		vaultInstance, err := vault.New(vaultCfg, vaultClient)
-		if err != nil {
-			return fmt.Errorf("failed to instantiate vault: %w", err)
-		}
-		return vaultInstance.FetchSecretsToEnv(ctx)
-	}
 	return nil
 }
 
