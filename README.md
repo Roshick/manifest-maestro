@@ -26,14 +26,13 @@ Platform & infra teams often need consistent, fast, reproducible Kubernetes mani
 - Uniform JSON error model & OpenAPI documented API
 - Health (readiness/liveness), metrics (Prometheus), profiling (`/debug/pprof`), and tracing (OpenTelemetry)
 - GitHub App authentication for private Git repository access w/ smart pagination & rate limit metrics
-- Vault secret retrieval to environment (optional)
 - Structured logging (plain or JSON) with attribute renaming and UTC timestamp transformer
 
 ## Architecture Overview
 Layered composition:
 ```
 main.go → wiring.Application
-  ├─ bootstrap: logging, vault, config, telemetry
+  ├─ bootstrap: logging, config, telemetry
   ├─ repositories: GitHubClient, Git, HelmRemote
   ├─ services: GitRepositoryCache, HelmIndexCache, HelmChartCache,
   │            HelmChartProvider, HelmChartRenderer,
@@ -150,8 +149,6 @@ Logging (from `LoggingConfig`):
 - `LOG_ATTRIBUTE_KEY_MAPPINGS` (JSON map; remaps slog keys → structured output keys)
 - `LOG_TIME_TRANSFORMER` (`UTC` | `ZERO`)
 
-Vault (via go-autumn-vault, optional): When enabled, secrets are fetched and added to env before application config parsing.
-
 Telemetry (OTLP exporters) rely on standard OpenTelemetry env vars if set (e.g. `OTEL_EXPORTER_OTLP_ENDPOINT`).
 
 ## Quick Start
@@ -260,8 +257,7 @@ Mechanism: abstraction from `go-autumn-synchronisation` offering in‑memory or 
 CRDs & hooks included by default; disable with `{"includeCRDs": false}` or `{"includeHooks": false}`.
 
 ## Security Considerations
-- GitHub App private key loaded via `GITHUB_APP_PRIVATE_KEY` (ensure proper secret management, consider Vault integration)
-- Vault integration can populate sensitive credentials before other config parsing
+- GitHub App private key loaded via `GITHUB_APP_PRIVATE_KEY` (ensure proper secret management)
 - CORS middleware currently permissive (review before exposing publicly)
 - Input validation for request bodies (schema enforcement & malformed body handling)
 - Remote code artifacts (Helm charts, Git repos) are fetched & executed only as data (no template execution outside Helm rendering). Review dependencies for supply chain integrity.
@@ -329,7 +325,7 @@ MIT – see `LICENSE` file.
 - go-git & supporting billy filesystem
 - Prometheus client library
 - GitHub API libraries & rate limit helpers
-- `go-autumn-*` libraries powering logging, vault, web, synchronization
+- `go-autumn-*` libraries powering logging, web, synchronization
 
 ---
 Questions or ideas? Open an issue or start a discussion.
