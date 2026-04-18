@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/rehttp v1.4.0
 	github.com/Roshick/go-autumn-slog v0.4.0
 	github.com/Roshick/go-autumn-synchronisation v0.7.10
-	github.com/Roshick/go-autumn-web v1.0.9
+	github.com/Roshick/go-autumn-web v1.0.10
 	github.com/Roshick/manifest-maestro-api v1.5.2
 	github.com/StephanHCB/go-autumn-logging v0.4.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.18.0
