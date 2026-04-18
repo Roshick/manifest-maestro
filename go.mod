@@ -23,7 +23,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/riandyrn/otelchi v0.12.2
 	github.com/swaggo/http-swagger/v2 v2.0.3-0.20250902111949-1340604bd9f5
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.43.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.43.0
@@ -31,7 +31,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.43.0
 	go.opentelemetry.io/otel/sdk v1.43.0
 	go.opentelemetry.io/otel/sdk/metric v1.43.0
-	helm.sh/helm/v4 v4.1.3
+	helm.sh/helm/v4 v4.1.4
 	oras.land/oras-go/v2 v2.6.0
 	sigs.k8s.io/kustomize/api v0.21.1
 	sigs.k8s.io/kustomize/kyaml v0.21.1
