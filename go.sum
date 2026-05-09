@@ -23,8 +23,8 @@ github.com/ProtonMail/go-crypto v1.4.1 h1:9RfcZHqEQUvP8RzecWEUafnZVtEvrBVL9BiF67
 github.com/ProtonMail/go-crypto v1.4.1/go.mod h1:e1OaTyu5SYVrO9gKOEhTc+5UcXtTUa+P3uLudwcgPqo=
 github.com/PuerkitoBio/rehttp v1.4.0 h1:rIN7A2s+O9fmHUM1vUcInvlHj9Ysql4hE+Y0wcl/xk8=
 github.com/PuerkitoBio/rehttp v1.4.0/go.mod h1:LUwKPoDbDIA2RL5wYZCNsQ90cx4OJ4AWBmq6KzWZL1s=
-github.com/Roshick/go-autumn-slog v0.4.0 h1:ngGzLh+zVXgzMs1eoh/EHHI689sD2xpFaf17ED198VA=
-github.com/Roshick/go-autumn-slog v0.4.0/go.mod h1:Rbvl8UntuTf5GJ5MqbdR+uN4P18t+AcqSu8rIjqh1YE=
+github.com/Roshick/go-autumn-slog v0.5.0 h1:CwsSCWRBRNORzUcEJyBkiRt3P1XrdDY5IyL2O6I5Zmg=
+github.com/Roshick/go-autumn-slog v0.5.0/go.mod h1:TzTP2W2SkOdSd+1sRi76gEFZcBfOrt1zDlDKdkj27Rc=
 github.com/Roshick/go-autumn-synchronisation v0.7.10 h1:a4YjPb7nNxtW7WfRnOjhAD3bc1Ygl6ZJnFverexpzOk=
 github.com/Roshick/go-autumn-synchronisation v0.7.10/go.mod h1:FhDFfIL7379Ywnj06Clfmcm2SqEYrwZmZeQ1IgO/2Fs=
 github.com/Roshick/go-autumn-web v1.0.10 h1:rZWYPrWuRcaBV6nG/mR3Wj1DJfazcPCfba7fM5gH21U=
