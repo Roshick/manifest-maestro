@@ -56,12 +56,7 @@ func (c *GitRepositoryCache) RetrieveRepository(
 func (c *GitRepositoryCache) RetrieveRepositoryToFileSystem(
 	ctx context.Context, repositoryURL string, gitReference string, fileSystem *filesystem.FileSystem,
 ) error {
-	commitHash, err := c.git.ToHash(ctx, repositoryURL, gitReference)
-	if err != nil {
-		return err
-	}
-
-	tarball, err := c.RetrieveRepository(ctx, repositoryURL, commitHash)
+	tarball, err := c.RetrieveRepository(ctx, repositoryURL, gitReference)
 	if err != nil {
 		return err
 	}
@@ -74,12 +69,8 @@ func (c *GitRepositoryCache) RetrieveRepositoryToFileSystem(
 func (c *GitRepositoryCache) refreshRepository(
 	ctx context.Context,
 	repositoryURL string,
-	gitReference string,
+	commitHash string,
 ) ([]byte, error) {
-	commitHash, err := c.git.ToHash(ctx, repositoryURL, gitReference)
-	if err != nil {
-		return nil, err
-	}
 
 	key := c.cacheKey(repositoryURL, commitHash)
 	tarball, err := c.fetchAsTarball(ctx, repositoryURL, commitHash)
@@ -110,13 +101,8 @@ func (c *GitRepositoryCache) fetchAsTarball(
 		return nil, err
 	}
 
-	fileSystem := filesystem.New()
-	if err = filesystem.CopyFromBillyToFileSystem(tree.Filesystem, fileSystem); err != nil {
-		return nil, err
-	}
-
 	repoBuffer := new(bytes.Buffer)
-	if err = targz.Compress(ctx, fileSystem, fileSystem.Root, "", repoBuffer); err != nil {
+	if err = targz.CompressFromBilly(ctx, tree.Filesystem, repoBuffer); err != nil {
 		return nil, err
 	}
 	return repoBuffer.Bytes(), nil

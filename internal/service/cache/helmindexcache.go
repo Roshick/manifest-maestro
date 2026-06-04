@@ -80,9 +80,10 @@ func (c *HelmIndexCache) parseIndex(data []byte) (*repo.IndexFile, error) {
 		if err := json.Unmarshal(data, index); err != nil {
 			return nil, err
 		}
-	}
-	if err := yaml.UnmarshalStrict(data, index); err != nil {
-		return nil, err
+	} else {
+		if err := yaml.UnmarshalStrict(data, index); err != nil {
+			return nil, err
+		}
 	}
 	if index.APIVersion == "" {
 		return index, repo.ErrNoAPIVersion

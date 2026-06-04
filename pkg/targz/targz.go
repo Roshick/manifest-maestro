@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Roshick/manifest-maestro/pkg/filesystem"
+	"github.com/go-git/go-billy/v5"
 
 	aulogging "github.com/StephanHCB/go-autumn-logging"
 )
@@ -117,5 +118,74 @@ func Extract(ctx context.Context, fileSystem *filesystem.FileSystem, sourceReade
 		}
 	}
 
+	return nil
+}
+
+// CompressFromBilly compresses a billy filesystem directly into a tar.gz stream,
+// avoiding an intermediate copy to an in-memory filesystem.
+func CompressFromBilly(
+	ctx context.Context,
+	billyFS billy.Filesystem,
+	targetWriter io.Writer,
+) error {
+	gzw := gzip.NewWriter(targetWriter)
+	defer func() {
+		if err := gzw.Close(); err != nil {
+			aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("failed to close gzip writer")
+		}
+	}()
+	tw := tar.NewWriter(gzw)
+	defer func() {
+		if err := tw.Close(); err != nil {
+			aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("failed to close tar writer")
+		}
+	}()
+
+	return compressBillyDir(ctx, billyFS, tw, "")
+}
+
+func compressBillyDir(ctx context.Context, billyFS billy.Filesystem, tw *tar.Writer, currentPath string) error {
+	files, err := billyFS.ReadDir(currentPath)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		filePath := currentPath
+		if filePath == "" {
+			filePath = file.Name()
+		} else {
+			filePath = filePath + "/" + file.Name()
+		}
+
+		if file.IsDir() {
+			if innerErr := compressBillyDir(ctx, billyFS, tw, filePath); innerErr != nil {
+				return innerErr
+			}
+			continue
+		}
+
+		header, innerErr := tar.FileInfoHeader(file, file.Name())
+		if innerErr != nil {
+			return innerErr
+		}
+		header.Name = filePath
+
+		if innerErr = tw.WriteHeader(header); innerErr != nil {
+			return innerErr
+		}
+
+		src, innerErr := billyFS.Open(filePath)
+		if innerErr != nil {
+			return innerErr
+		}
+		if _, innerErr = io.Copy(tw, src); innerErr != nil {
+			_ = src.Close()
+			return innerErr
+		}
+		if innerErr = src.Close(); innerErr != nil {
+			aulogging.Logger.Ctx(ctx).Warn().WithErr(innerErr).Printf("failed to close '%s'", filePath)
+		}
+	}
 	return nil
 }

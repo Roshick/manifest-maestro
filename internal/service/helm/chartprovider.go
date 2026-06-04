@@ -7,12 +7,14 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	openapi "github.com/Roshick/manifest-maestro-api"
 	"github.com/Roshick/manifest-maestro/internal/service/cache"
 	"github.com/Roshick/manifest-maestro/internal/utils"
 	"github.com/Roshick/manifest-maestro/pkg/filesystem"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
+	"golang.org/x/sync/errgroup"
 	"helm.sh/helm/v4/pkg/chart/loader/archive"
 	chart "helm.sh/helm/v4/pkg/chart/v2"
 	"helm.sh/helm/v4/pkg/chart/v2/loader"
@@ -118,7 +120,15 @@ func (p *ChartProvider) buildChart(
 		return nil, err
 	}
 
-	for _, dependency := range helmChart.Metadata.Dependencies {
+	// First pass: resolve local dependencies and identify remote ones to fetch in parallel.
+	type remoteDep struct {
+		index      int
+		dependency *chart.Dependency
+	}
+	resolvedDeps := make([]*chart.Chart, len(helmChart.Metadata.Dependencies))
+	var remoteDeps []remoteDep
+
+	for i, dependency := range helmChart.Metadata.Dependencies {
 		if innerErr := dependency.Validate(); innerErr != nil {
 			return nil, innerErr
 		}
@@ -131,7 +141,7 @@ func (p *ChartProvider) buildChart(
 				return nil, innerErr
 			}
 			if dependencyChart.Metadata.Version == dependency.Version {
-				helmChart.AddDependency(dependencyChart)
+				resolvedDeps[i] = dependencyChart
 				continue
 			}
 		} else if path := fileSystem.Join(chartsPath, fmt.Sprintf("%s-%s.tgz", dependency.Name, dependency.Version)); fileSystem.Exists(path) {
@@ -140,7 +150,7 @@ func (p *ChartProvider) buildChart(
 				return nil, innerErr
 			}
 			if dependencyChart.Metadata.Version == dependency.Version {
-				helmChart.AddDependency(dependencyChart)
+				resolvedDeps[i] = dependencyChart
 				continue
 			}
 		} else if path = fileSystem.Join(chartsPath, dependency.Name); fileSystem.Exists(path) {
@@ -149,23 +159,48 @@ func (p *ChartProvider) buildChart(
 				return nil, innerErr
 			}
 			if dependencyChart.Metadata.Version == dependency.Version {
-				helmChart.AddDependency(dependencyChart)
+				resolvedDeps[i] = dependencyChart
 				continue
 			}
 		}
-		chartBytes, innerErr := p.helmChartCache.RetrieveChart(ctx, openapi.HelmChartRepositoryChartReference{
-			RepositoryURL: dependency.Repository,
-			ChartName:     dependency.Name,
-			ChartVersion:  utils.Ptr(dependency.Version),
-		})
-		if innerErr != nil {
-			return nil, innerErr
+		remoteDeps = append(remoteDeps, remoteDep{index: i, dependency: dependency})
+	}
+
+	// Second pass: fetch all remote dependencies in parallel.
+	if len(remoteDeps) > 0 {
+		g, gCtx := errgroup.WithContext(ctx)
+		var mu sync.Mutex
+		for _, rd := range remoteDeps {
+			dep := rd
+			g.Go(func() error {
+				chartBytes, innerErr := p.helmChartCache.RetrieveChart(gCtx, openapi.HelmChartRepositoryChartReference{
+					RepositoryURL: dep.dependency.Repository,
+					ChartName:     dep.dependency.Name,
+					ChartVersion:  utils.Ptr(dep.dependency.Version),
+				})
+				if innerErr != nil {
+					return innerErr
+				}
+				dependencyChart, innerErr := loader.LoadArchive(bytes.NewReader(chartBytes))
+				if innerErr != nil {
+					return innerErr
+				}
+				mu.Lock()
+				resolvedDeps[dep.index] = dependencyChart
+				mu.Unlock()
+				return nil
+			})
 		}
-		dependencyChart, innerErr := loader.LoadArchive(bytes.NewReader(chartBytes))
-		if innerErr != nil {
-			return nil, innerErr
+		if err = g.Wait(); err != nil {
+			return nil, err
 		}
-		helmChart.AddDependency(dependencyChart)
+	}
+
+	// Add dependencies in order.
+	for _, depChart := range resolvedDeps {
+		if depChart != nil {
+			helmChart.AddDependency(depChart)
+		}
 	}
 
 	return &Chart{
