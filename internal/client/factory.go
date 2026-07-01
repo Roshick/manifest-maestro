@@ -14,7 +14,7 @@ import (
 	"github.com/Roshick/go-autumn-web/tracing"
 	"github.com/gofri/go-github-pagination/githubpagination"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
-	"github.com/google/go-github/v86/github"
+	"github.com/google/go-github/v88/github"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -118,8 +118,8 @@ func (f *Factory) NewGitHubClient(
 	rt = otelhttp.NewTransport(rt, otelhttp.WithServerName(clientName))
 	rt = tracing.NewRequestIDHeaderTransport(rt, nil)
 
-	return github.NewClient(&http.Client{
+	return github.NewClient(github.WithHTTPClient(&http.Client{
 		Transport: rt,
 		Timeout:   opts.Timeout,
-	}), nil
+	}))
 }
