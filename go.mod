@@ -7,7 +7,7 @@ require (
 	github.com/Roshick/go-autumn-slog v0.5.0
 	github.com/Roshick/go-autumn-synchronisation v0.7.10
 	github.com/Roshick/go-autumn-web v1.0.10
-	github.com/Roshick/manifest-maestro-api v1.5.2
+	github.com/Roshick/manifest-maestro-api v1.5.3
 	github.com/StephanHCB/go-autumn-logging v0.4.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
 	github.com/caarlos0/env/v11 v11.4.1
