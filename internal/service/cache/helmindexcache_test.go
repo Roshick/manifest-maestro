@@ -174,3 +174,64 @@ func TestHelmIndexCache_ParseIndex_MultipleCharts(t *testing.T) {
 	assert.Len(t, otherChartVersions, 1)
 }
 
+func TestHelmIndexCache_ParseIndex_FiltersInvalidAndNilEntries(t *testing.T) {
+	indexCache := &HelmIndexCache{}
+
+	indexYAML := []byte(`apiVersion: v1
+entries:
+  mixedchart:
+    - null
+    - name: mixedchart
+      version: 1.0.0
+      apiVersion: v2
+      urls:
+        - https://example.com/charts/mixedchart-1.0.0.tgz
+    - version: 2.0.0
+      apiVersion: v2
+      urls:
+        - https://example.com/charts/unnamed-2.0.0.tgz
+  brokenchart:
+    - null
+`)
+
+	index, err := indexCache.parseIndex(indexYAML)
+	require.NoError(t, err)
+	require.NotNil(t, index)
+
+	// Only the valid version remains; nil and invalid (missing name) entries are removed
+	mixedChartVersions := index.Entries["mixedchart"]
+	require.Len(t, mixedChartVersions, 1)
+	assert.Equal(t, "mixedchart", mixedChartVersions[0].Name)
+	assert.Equal(t, "1.0.0", mixedChartVersions[0].Version)
+
+	// A chart consisting solely of nil entries ends up empty
+	assert.Empty(t, index.Entries["brokenchart"])
+}
+
+func TestHelmIndexCache_ParseIndex_DefaultsMissingAPIVersion(t *testing.T) {
+	indexCache := &HelmIndexCache{}
+
+	indexYAML := []byte(`apiVersion: v1
+entries:
+  legacychart:
+    - name: legacychart
+      version: 1.0.0
+      urls:
+        - https://example.com/charts/legacychart-1.0.0.tgz
+`)
+
+	index, err := indexCache.parseIndex(indexYAML)
+	require.NoError(t, err)
+
+	legacyChartVersions := index.Entries["legacychart"]
+	require.Len(t, legacyChartVersions, 1)
+	assert.NotEmpty(t, legacyChartVersions[0].APIVersion)
+}
+
+func TestHelmIndexCache_ParseIndex_MissingAPIVersion(t *testing.T) {
+	indexCache := &HelmIndexCache{}
+
+	_, err := indexCache.parseIndex([]byte(`entries: {}`))
+	assert.Error(t, err)
+}
+

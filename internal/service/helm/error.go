@@ -20,6 +20,10 @@ func (e *ChartBuildError) Error() string {
 	return fmt.Sprintf("failed to build Helm chart: %v", e.err)
 }
 
+func (e *ChartBuildError) Unwrap() error {
+	return e.err
+}
+
 func NewChartBuildError(err error) *ChartBuildError {
 	return &ChartBuildError{
 		err: err,
@@ -32,6 +36,10 @@ type ChartRenderError struct {
 
 func (e *ChartRenderError) Error() string {
 	return fmt.Sprintf("failed to render Helm chart: %v", e.err)
+}
+
+func (e *ChartRenderError) Unwrap() error {
+	return e.err
 }
 
 func NewChartRenderError(err error) *ChartRenderError {
