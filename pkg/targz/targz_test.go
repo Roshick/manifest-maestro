@@ -1,7 +1,9 @@
 package targz
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"os"
 	"testing"
@@ -168,6 +170,93 @@ func writeBillyFile(t *testing.T, billyFS billy.Filesystem, path string, content
 	_, err = f.Write([]byte(content))
 	require.NoError(t, err)
 	require.NoError(t, f.Close())
+}
+
+func createArchive(t *testing.T, entries map[string]string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	gzw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gzw)
+	for name, content := range entries {
+		require.NoError(t, tw.WriteHeader(&tar.Header{
+			Name:     name,
+			Typeflag: tar.TypeReg,
+			Mode:     0o644,
+			Size:     int64(len(content)),
+		}))
+		_, err := tw.Write([]byte(content))
+		require.NoError(t, err)
+	}
+	require.NoError(t, tw.Close())
+	require.NoError(t, gzw.Close())
+	return buf.Bytes()
+}
+
+func TestExtract_RejectsPathTraversal(t *testing.T) {
+	ctx := context.Background()
+	dstFS := filesystem.New()
+
+	archive := createArchive(t, map[string]string{
+		"../evil.txt": "malicious content",
+	})
+
+	targetPath := dstFS.Join(dstFS.Root, "target")
+	err := Extract(ctx, dstFS, bytes.NewReader(archive), targetPath)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "escapes target directory")
+
+	// The file must not have been created outside the target directory
+	assert.False(t, dstFS.Exists(dstFS.Join(dstFS.Root, "evil.txt")))
+}
+
+func TestExtract_RejectsNestedPathTraversal(t *testing.T) {
+	ctx := context.Background()
+	dstFS := filesystem.New()
+
+	archive := createArchive(t, map[string]string{
+		"subdir/../../evil.txt": "malicious content",
+	})
+
+	targetPath := dstFS.Join(dstFS.Root, "target")
+	err := Extract(ctx, dstFS, bytes.NewReader(archive), targetPath)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "escapes target directory")
+}
+
+func TestExtract_AllowsInternalRelativeSegments(t *testing.T) {
+	ctx := context.Background()
+	dstFS := filesystem.New()
+
+	// "subdir/../file.txt" resolves to "file.txt" which stays inside the target
+	archive := createArchive(t, map[string]string{
+		"subdir/../file.txt": "safe content",
+	})
+
+	targetPath := dstFS.Join(dstFS.Root, "target")
+	err := Extract(ctx, dstFS, bytes.NewReader(archive), targetPath)
+	require.NoError(t, err)
+	assertFileContent(t, dstFS, dstFS.Join(targetPath, "file.txt"), "safe content")
+}
+
+func TestExtract_RejectsUnsupportedFileType(t *testing.T) {
+	ctx := context.Background()
+	dstFS := filesystem.New()
+
+	var buf bytes.Buffer
+	gzw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gzw)
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Name:     "link",
+		Typeflag: tar.TypeSymlink,
+		Linkname: "/etc/passwd",
+		Mode:     0o777,
+	}))
+	require.NoError(t, tw.Close())
+	require.NoError(t, gzw.Close())
+
+	err := Extract(ctx, dstFS, bytes.NewReader(buf.Bytes()), dstFS.Root)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported type")
 }
 
 

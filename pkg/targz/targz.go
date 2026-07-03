@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -66,6 +67,7 @@ func Compress(
 			return err
 		}
 		if _, err = io.Copy(tw, file); err != nil {
+			_ = file.Close()
 			return err
 		}
 		if err = file.Close(); err != nil {
@@ -84,11 +86,16 @@ func Extract(ctx context.Context, fileSystem *filesystem.FileSystem, sourceReade
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if innerErr := gzr.Close(); innerErr != nil {
+			aulogging.Logger.Ctx(ctx).Warn().WithErr(innerErr).Printf("failed to close gzip reader")
+		}
+	}()
 	tr := tar.NewReader(gzr)
 
 	for {
 		header, innerErr := tr.Next()
-		if innerErr == io.EOF {
+		if errors.Is(innerErr, io.EOF) {
 			break
 		}
 		if innerErr != nil {
@@ -96,6 +103,9 @@ func Extract(ctx context.Context, fileSystem *filesystem.FileSystem, sourceReade
 		}
 
 		filePath := fileSystem.Join(targetPath, header.Name)
+		if filePath != targetPath && !strings.HasPrefix(filePath, strings.TrimSuffix(targetPath, fileSystem.Separator)+fileSystem.Separator) {
+			return fmt.Errorf("failed to extract file '%s': path escapes target directory '%s'", header.Name, targetPath)
+		}
 		switch header.Typeflag {
 		case tar.TypeDir:
 			continue

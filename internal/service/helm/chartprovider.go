@@ -223,7 +223,7 @@ func (p *ChartProvider) loadChart(
 			return nil, err
 		}
 		defer func() {
-			if innerErr := ignoreFile.Close(); err != nil {
+			if innerErr := ignoreFile.Close(); innerErr != nil {
 				aulogging.Logger.Ctx(ctx).Warn().WithErr(innerErr).Printf("failed to close '%s'", ignoreFilePath)
 			}
 		}()

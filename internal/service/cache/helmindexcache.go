@@ -89,9 +89,10 @@ func (c *HelmIndexCache) parseIndex(data []byte) (*repo.IndexFile, error) {
 		return index, repo.ErrNoAPIVersion
 	}
 
-	for _, cvs := range index.Entries {
+	for name, cvs := range index.Entries {
 		for idx := len(cvs) - 1; idx >= 0; idx-- {
 			if cvs[idx] == nil {
+				cvs = append(cvs[:idx], cvs[idx+1:]...)
 				continue
 			}
 			if cvs[idx].APIVersion == "" {
@@ -101,6 +102,7 @@ func (c *HelmIndexCache) parseIndex(data []byte) (*repo.IndexFile, error) {
 				cvs = append(cvs[:idx], cvs[idx+1:]...)
 			}
 		}
+		index.Entries[name] = cvs
 	}
 	index.SortEntries()
 

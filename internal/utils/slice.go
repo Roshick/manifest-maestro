@@ -1,10 +1,13 @@
 package utils
 
 func Unique[V comparable](values []V) []V {
-	indicators := IndicatorMap(values)
-	unique := make([]V, 0)
-	for value := range indicators {
-		unique = append(unique, value)
+	seen := make(map[V]bool, len(values))
+	unique := make([]V, 0, len(values))
+	for _, value := range values {
+		if !seen[value] {
+			seen[value] = true
+			unique = append(unique, value)
+		}
 	}
 	return unique
 }

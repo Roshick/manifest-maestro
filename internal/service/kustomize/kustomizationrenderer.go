@@ -34,9 +34,14 @@ func (k *KustomizationRenderer) render(
 	kustomization *Kustomization,
 	parameters *openapi.KustomizeRenderParameters,
 ) ([]openapi.Manifest, error) {
+	actualParameters := openapi.KustomizeRenderParameters{}
+	if parameters != nil {
+		actualParameters = *parameters
+	}
+
 	kustomizer := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
 
-	for _, injection := range parameters.ManifestInjections {
+	for _, injection := range actualParameters.ManifestInjections {
 		if injection.FileName == "" {
 			return nil, errors.New("filename cannot be empty")
 		}
