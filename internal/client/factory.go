@@ -14,7 +14,7 @@ import (
 	"github.com/Roshick/go-autumn-web/tracing"
 	"github.com/gofri/go-github-pagination/githubpagination"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v90/github"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
