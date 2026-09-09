@@ -5,7 +5,7 @@ import (
 
 	"github.com/Roshick/manifest-maestro/internal/web/middleware"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/go-github/v90/github"
+	"github.com/google/go-github/v91/github"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
