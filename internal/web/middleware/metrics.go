@@ -6,7 +6,7 @@ import (
 	"time"
 
 	aulogging "github.com/StephanHCB/go-autumn-logging"
-	"github.com/google/go-github/v91/github"
+	"github.com/google/go-github/v92/github"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
