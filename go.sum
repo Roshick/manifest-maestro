@@ -23,8 +23,8 @@ github.com/PuerkitoBio/rehttp v1.4.0 h1:rIN7A2s+O9fmHUM1vUcInvlHj9Ysql4hE+Y0wcl/
 github.com/PuerkitoBio/rehttp v1.4.0/go.mod h1:LUwKPoDbDIA2RL5wYZCNsQ90cx4OJ4AWBmq6KzWZL1s=
 github.com/Roshick/go-autumn-slog v0.5.2 h1:W1T4NROyY8HTIeMsaSIA6gE957YDnrYIuE+AOJ5Ky2o=
 github.com/Roshick/go-autumn-slog v0.5.2/go.mod h1:H9nLjiL7OcF++n52pBrFyD6+zNMq0HIL2lBIIyQ1UPE=
-github.com/Roshick/go-autumn-synchronisation v0.7.12 h1:+Paop3TRJdLMHUXLInkAu04cxWQzwXG/g+5jR2uAnKQ=
-github.com/Roshick/go-autumn-synchronisation v0.7.12/go.mod h1:It/MqLCP1MlsOAu1dkCc+NJlpEulFrCUG/NKysiawZU=
+github.com/Roshick/go-autumn-synchronisation v0.7.13 h1:ncenP/alUji+aHi7R48DUt1kZQ0KGhe4ujqbYOqpGww=
+github.com/Roshick/go-autumn-synchronisation v0.7.13/go.mod h1:yCAdo1DLSIilZQ2UDCx6rPd22n98KAxeoazse5L/cV0=
 github.com/Roshick/go-autumn-web v1.0.12 h1:q+mR82QblM8pLkmHd8aRIxf81bopv1/Md99ts3iW+cw=
 github.com/Roshick/go-autumn-web v1.0.12/go.mod h1:fbn/uCAv3NppU6Wv/JLwhlsUM1qoFHRGYjRjZJS6SCo=
 github.com/Roshick/manifest-maestro-api v1.5.4 h1:N/tnoDxhnwjzSpc2ZyMqcjNnSCAwPjJwKMTRWNKUxDc=
@@ -295,8 +295,8 @@ github.com/redis/go-redis/extra/redisotel/v9 v9.0.5 h1:EfpWLLCyXw8PSM2/XNJLjI3Pb
 github.com/redis/go-redis/extra/redisotel/v9 v9.0.5/go.mod h1:WZjPDy7VNzn77AAfnAfVjZNvfJTYfPetfZk5yoSTLaQ=
 github.com/redis/go-redis/v9 v9.7.3 h1:YpPyAayJV+XErNsatSElgRZZVCwXX9QzkKYNvO7x0wM=
 github.com/redis/go-redis/v9 v9.7.3/go.mod h1:bGUrSggJ9X9GUmZpZNEOQKaANxSGgOEBRltRTZHSvrA=
-github.com/redis/rueidis v1.0.77 h1:ZR41bgJcm7oRFb3aSDPrRhC0eonDSrPzjvvZvHIlNjM=
-github.com/redis/rueidis v1.0.77/go.mod h1:L8mnCQJJaSNL6I4pIR6Rz732HTGS9vmuXm0yT9dRvjo=
+github.com/redis/rueidis v1.0.78 h1:hJXpEgC9IYfdwY4hCdaGYsfK+oUaAqvhI/GMy5akVJI=
+github.com/redis/rueidis v1.0.78/go.mod h1:L8mnCQJJaSNL6I4pIR6Rz732HTGS9vmuXm0yT9dRvjo=
 github.com/riandyrn/otelchi v0.12.3 h1:KW9gA+97d6mExk8vbh0FRwb2biUvpyYlc8YuxP1Oap0=
 github.com/riandyrn/otelchi v0.12.3/go.mod h1:weZZeUJURvtCcbWsdb7Y6F8KFZGedJlSrgUjq9VirV8=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
