@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/PuerkitoBio/rehttp v1.4.0
 	github.com/Roshick/go-autumn-slog v0.5.2
-	github.com/Roshick/go-autumn-synchronisation v0.7.12
+	github.com/Roshick/go-autumn-synchronisation v0.7.13
 	github.com/Roshick/go-autumn-web v1.0.12
 	github.com/Roshick/manifest-maestro-api v1.5.4
 	github.com/StephanHCB/go-autumn-logging v0.4.0
@@ -123,7 +123,7 @@ require (
 	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/otlptranslator v1.0.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
-	github.com/redis/rueidis v1.0.77 // indirect
+	github.com/redis/rueidis v1.0.78 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
