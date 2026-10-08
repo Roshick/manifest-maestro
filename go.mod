@@ -20,7 +20,7 @@ require (
 	github.com/google/go-github/v92 v92.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mitchellh/copystructure v1.2.0
-	github.com/prometheus/client_golang v1.24.1
+	github.com/prometheus/client_golang v1.25.0
 	github.com/riandyrn/otelchi v0.12.3
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/http-swagger/v2 v2.0.3-0.20250902111949-1340604bd9f5
