@@ -13,7 +13,6 @@ import (
 	"github.com/Roshick/go-autumn-web/logging"
 	"github.com/Roshick/go-autumn-web/metrics"
 	"github.com/Roshick/go-autumn-web/resiliency"
-	"github.com/Roshick/go-autumn-web/security"
 	"github.com/Roshick/go-autumn-web/tracing"
 	openapi "github.com/Roshick/manifest-maestro-api"
 	"github.com/Roshick/manifest-maestro/internal/utils"
@@ -87,8 +86,6 @@ func (s *Server) setupRootMiddlewares(_ context.Context) {
 	opts := logging.DefaultContextCancellationLoggerMiddlewareOptions()
 	opts.Description = "server"
 	s.Router.Use(logging.NewContextCancellationLoggerMiddleware(opts))
-
-	s.Router.Use(security.NewCORSMiddleware(nil))
 
 	s.Router.Use(logging.NewContextLoggerMiddleware(nil))
 

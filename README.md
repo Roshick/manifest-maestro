@@ -25,7 +25,7 @@ Platform & infra teams often need consistent, fast, reproducible Kubernetes mani
 - Caching layers (Git repositories, Helm indexes, Helm chart tarballs) with time‑based TTLs
 - Uniform JSON error model & OpenAPI documented API
 - Health (readiness/liveness), metrics (Prometheus), profiling (`/debug/pprof`), and tracing (OpenTelemetry)
-- GitHub App authentication for private Git repository access w/ smart pagination & rate limit metrics
+- GitHub App authentication for private Git repository access (repositories on github.com only)
 - Structured logging (plain or JSON) with attribute renaming and UTC timestamp transformer
 
 ## Architecture Overview
@@ -37,7 +37,7 @@ main.go → wiring.Application
   ├─ services: GitRepositoryCache, HelmIndexCache, HelmChartCache,
   │            HelmChartProvider, HelmChartRenderer,
   │            KustomizationProvider, KustomizationRenderer
-  └─ web: chi Router + middlewares (CORS, request id, tracing, metrics, panic recovery)
+  └─ web: chi Router + middlewares (request id, tracing, metrics, panic recovery)
         controllers: Health, Metrics, Profiler, Swagger, V1 (Helm/Kustomize actions)
 ```
 Caching + provider flow (Helm chart path example):
@@ -142,6 +142,7 @@ Application (from `ApplicationConfig`):
 - `SYNCHRONIZATION_METHOD` (`MEMORY` | `REDIS`)
 - `SYNCHRONIZATION_REDIS_URL` (e.g. `redis://localhost:6379`)
 - `SYNCHRONIZATION_REDIS_PASSWORD`
+- `AUTH_BASIC_USERNAME`, `AUTH_BASIC_PASSWORD` – enable basic authentication for the REST API (both or none)
 
 Logging (from `LoggingConfig`):
 - `LOG_STYLE` (`PLAIN` | `JSON`)
@@ -235,9 +236,10 @@ Error sample (chart not found): returns JSON:
 ## Endpoints Summary
 - `GET /health/liveness`, `GET /health/readiness`
 - `GET /metrics`
-- `GET /debug/*` (pprof profiler)
+- `GET /debug/*` (pprof profiler, requires basic authentication; unavailable if `AUTH_BASIC_*` is not set)
 - `GET /swagger-ui/*` (Swagger UI assets & OpenAPI spec)
 - `POST /rest/api/v1/helm/actions/list-charts` (currently returns 500 – roadmap item)
+- `POST /rest/api/v1/helm/actions/list-chart-versions` (currently returns 500 – roadmap item)
 - `POST /rest/api/v1/helm/actions/get-chart-metadata`
 - `POST /rest/api/v1/helm/actions/render-chart`
 - `POST /rest/api/v1/kustomize/actions/render-kustomization`
@@ -258,14 +260,18 @@ CRDs & hooks included by default; disable with `{"includeCRDs": false}` or `{"in
 
 ## Security Considerations
 - GitHub App private key loaded via `GITHUB_APP_PRIVATE_KEY` (ensure proper secret management)
-- CORS middleware currently permissive (review before exposing publicly)
+- REST API (`/rest/api/v1/*`) requires basic authentication if `AUTH_BASIC_USERNAME` and `AUTH_BASIC_PASSWORD` are set; without them it is unauthenticated and must not be reachable by untrusted clients
+- No CORS headers are sent, browsers cannot read API responses cross-origin
+- Request bodies are limited to 32 MiB
 - Input validation for request bodies (schema enforcement & malformed body handling)
+- Git repository URLs must point to github.com (`https://github.com/<owner>/<repo>`, `git@github.com:<owner>/<repo>` or `ssh://git@github.com/<owner>/<repo>`), so that the GitHub App token is never sent to other hosts
+- Kustomizations must not reference remote resources (http(s), ssh or git URLs); only files of the cloned repository are loaded
 - Remote code artifacts (Helm charts, Git repos) are fetched & executed only as data (no template execution outside Helm rendering). Review dependencies for supply chain integrity.
 - Use Redis AUTH (`SYNCHRONIZATION_REDIS_PASSWORD`) when using Redis
 - Run container as non‑root (enhancement pending – scratch base currently inherits root UID)
 
 ## Observability
-- Metrics: Prometheus format at `/metrics` includes request metrics & GitHub rate limit gauges
+- Metrics: Prometheus format at `/metrics` includes request metrics
 - Tracing: OpenTelemetry spans via `otelchi` & `otelhttp` – configure OTLP endpoint with env vars
 - Profiling: `/debug/pprof` endpoint for CPU, heap, goroutine analysis
 - Structured logging: slog with customizable key mapping (e.g. `time` → `@timestamp`) and level control
@@ -303,7 +309,7 @@ Update OpenAPI (external module `manifest-maestro-api`): bump version in `go.mod
 - Implement `/helm/actions/list-charts`
 - Manual cache invalidation endpoints
 - Configurable TTLs via environment
-- RBAC / API tokens & tighter CORS config
+- RBAC / API tokens
 - Streaming responses for large manifest sets
 - More comprehensive e2e tests & benchmarks
 

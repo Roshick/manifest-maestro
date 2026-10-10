@@ -45,6 +45,9 @@ func (k *KustomizationRenderer) render(
 		if injection.FileName == "" {
 			return nil, errors.New("filename cannot be empty")
 		}
+		if injection.FileName == "." || injection.FileName == ".." {
+			return nil, fmt.Errorf("filename cannot be '%s'", injection.FileName)
+		}
 		if strings.Contains(injection.FileName, kustomization.fileSystem.Separator) {
 			return nil, fmt.Errorf("filename cannot contain %s", kustomization.fileSystem.Separator)
 		}
@@ -65,6 +68,10 @@ func (k *KustomizationRenderer) render(
 		); err != nil {
 			return nil, err
 		}
+	}
+
+	if err := rejectRemoteReferences(kustomization.fileSystem, kustomization.targetPath); err != nil {
+		return nil, err
 	}
 
 	manifests, err := kustomizer.Run(kustomization.fileSystem, kustomization.targetPath)
