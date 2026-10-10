@@ -8,12 +8,12 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 )
 
+// GithubAuthTransport authenticates requests as the GitHub App (for /app/installations endpoints) or as the
+// configured installation. The underlying transports are created once, so that the installation token is
+// cached and only refreshed shortly before it expires.
 type GithubAuthTransport struct {
-	base http.RoundTripper
-
-	appID             int64
-	appInstallationID int64
-	privateKey        *rsa.PrivateKey
+	appsTransport         *ghinstallation.AppsTransport
+	installationTransport *ghinstallation.Transport
 }
 
 func NewGitHubAuthTransport(
@@ -26,20 +26,16 @@ func NewGitHubAuthTransport(
 		rt = http.DefaultTransport
 	}
 
+	appsTransport := ghinstallation.NewAppsTransportFromPrivateKey(rt, appID, privateKey)
 	return &GithubAuthTransport{
-		base:              rt,
-		appID:             appID,
-		appInstallationID: appInstallationID,
-		privateKey:        privateKey,
+		appsTransport:         appsTransport,
+		installationTransport: ghinstallation.NewFromAppsTransport(appsTransport, appInstallationID),
 	}
 }
 
 func (t *GithubAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	rt1 := ghinstallation.NewAppsTransportFromPrivateKey(t.base, t.appID, t.privateKey)
 	if strings.HasPrefix(req.URL.Path, "/app/installations") {
-		return rt1.RoundTrip(req)
+		return t.appsTransport.RoundTrip(req)
 	}
-
-	rt2 := ghinstallation.NewFromAppsTransport(rt1, t.appInstallationID)
-	return rt2.RoundTrip(req)
+	return t.installationTransport.RoundTrip(req)
 }

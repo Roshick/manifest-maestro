@@ -54,6 +54,11 @@ func handleErrorWrapped(ctx context.Context, w http.ResponseWriter, r *http.Requ
 			Title:  utils.Ptr("Helm repository URL invalid"),
 			Detail: utils.Ptr(err.Error()),
 		}})
+	case errors.As(err, new(*git.RepositoryURLInvalidError)):
+		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
+			Title:  utils.Ptr("Git repository URL invalid"),
+			Detail: utils.Ptr(err.Error()),
+		}})
 	case errors.As(err, new(*git.RepositoryNotFoundError)):
 		return render.Render(w, r, &APIError{StatusCode: http.StatusBadRequest, Error: openapi.Error{
 			Title:  utils.Ptr("Git repository not found"),

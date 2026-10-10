@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"regexp"
-	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
+
+	"github.com/Roshick/manifest-maestro/internal/utils"
 
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -20,23 +20,44 @@ import (
 
 type AuthProviderFn func(context.Context) (transport.AuthMethod, error)
 
+// URLResolverFn validates a repository url and maps it to the url used for network access. It must
+// reject any url whose host must not receive the credentials returned by the AuthProviderFn.
+type URLResolverFn func(repositoryURL string) (string, error)
+
 type Git struct {
 	authProviderFn AuthProviderFn
+	urlResolverFn  URLResolverFn
 
 	commitHashRegex *regexp.Regexp
 }
 
+type Option func(*Git)
+
+// WithURLResolver replaces the default resolver, which only permits repositories on github.com.
+func WithURLResolver(fn URLResolverFn) Option {
+	return func(g *Git) { g.urlResolverFn = fn }
+}
+
 func New(
 	authProviderFn AuthProviderFn,
+	opts ...Option,
 ) (*Git, error) {
-	return &Git{
+	g := &Git{
 		authProviderFn:  authProviderFn,
-		commitHashRegex: regexp.MustCompile("[[:xdigit:]]{40}"),
-	}, nil
+		urlResolverFn:   utils.NormalizeGitHubRepositoryURL,
+		commitHashRegex: regexp.MustCompile("^[[:xdigit:]]{40}$"),
+	}
+	for _, opt := range opts {
+		opt(g)
+	}
+	return g, nil
 }
 
 func (g *Git) RemoteReferences(ctx context.Context, repositoryURL string) ([]*plumbing.Reference, error) {
-	repositoryURL = mapURL(repositoryURL)
+	repositoryURL, err := g.resolveURL(repositoryURL)
+	if err != nil {
+		return nil, err
+	}
 
 	auth, err := g.authProviderFn(ctx)
 	if err != nil {
@@ -48,14 +69,11 @@ func (g *Git) RemoteReferences(ctx context.Context, repositoryURL string) ([]*pl
 		URLs: []string{repositoryURL},
 	})
 
-	references, err := rem.List(&git.ListOptions{
+	references, err := rem.ListContext(ctx, &git.ListOptions{
 		Auth: auth,
 	})
 	if err != nil {
-		if errors.As(err, new(*url.Error)) ||
-			strings.HasPrefix(err.Error(), "authentication required") ||
-			strings.HasPrefix(err.Error(), "unsupported scheme") ||
-			strings.HasPrefix(err.Error(), "repository not found") {
+		if isRepositoryNotAccessible(err) {
 			return nil, NewRepositoryNotFoundError(repositoryURL)
 		}
 		return nil, err
@@ -64,7 +82,13 @@ func (g *Git) RemoteReferences(ctx context.Context, repositoryURL string) ([]*pl
 }
 
 func (g *Git) CloneCommit(ctx context.Context, repositoryURL string, reference string) (*git.Repository, error) {
-	repositoryURL = mapURL(repositoryURL)
+	repositoryURL, err := g.resolveURL(repositoryURL)
+	if err != nil {
+		return nil, err
+	}
+	if !g.isCommitHash(reference) {
+		return nil, fmt.Errorf("reference '%s' is not a commit hash", reference)
+	}
 
 	auth, err := g.authProviderFn(ctx)
 	if err != nil {
@@ -85,14 +109,12 @@ func (g *Git) CloneCommit(ctx context.Context, repositoryURL string, reference s
 
 	localBranch := "refs/heads/local"
 	refSpec := fmt.Sprintf("%s:%s", reference, localBranch)
-	if err = repo.Fetch(&git.FetchOptions{
+	if err = repo.FetchContext(ctx, &git.FetchOptions{
 		Auth:     auth,
 		RefSpecs: []gitConfig.RefSpec{gitConfig.RefSpec(refSpec)},
 		Depth:    1,
 	}); err != nil {
-		if errors.As(err, new(*url.Error)) ||
-			strings.HasPrefix(err.Error(), "unsupported scheme") ||
-			strings.HasPrefix(err.Error(), "repository not found") {
+		if isRepositoryNotAccessible(err) {
 			return nil, NewRepositoryNotFoundError(repositoryURL)
 		}
 		return nil, err
@@ -134,6 +156,17 @@ func (g *Git) isCommitHash(gitReference string) bool {
 	return g.commitHashRegex.MatchString(gitReference)
 }
 
-func mapURL(url string) string {
-	return strings.Replace(url, "git@github.com:", "https://github.com/", 1)
+func (g *Git) resolveURL(repositoryURL string) (string, error) {
+	resolvedURL, err := g.urlResolverFn(repositoryURL)
+	if err != nil {
+		return "", NewRepositoryURLInvalidError(err)
+	}
+	return resolvedURL, nil
+}
+
+func isRepositoryNotAccessible(err error) bool {
+	return errors.Is(err, transport.ErrRepositoryNotFound) ||
+		errors.Is(err, transport.ErrAuthenticationRequired) ||
+		errors.Is(err, transport.ErrAuthorizationFailed) ||
+		errors.Is(err, transport.ErrEmptyRemoteRepository)
 }

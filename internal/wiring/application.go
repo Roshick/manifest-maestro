@@ -9,6 +9,7 @@ import (
 	"time"
 
 	aucache "github.com/Roshick/go-autumn-synchronisation/pkg/cache"
+	"github.com/Roshick/go-autumn-web/auth"
 	"github.com/Roshick/manifest-maestro/internal/client"
 	"github.com/Roshick/manifest-maestro/internal/service/cache"
 	"github.com/Roshick/manifest-maestro/internal/web/controller"
@@ -93,6 +94,9 @@ type Application struct {
 
 	// server
 	Server *web.Server
+
+	// AuthorizationFns authorize requests to the REST API and profiler, nil if authentication is disabled
+	AuthorizationFns []auth.AuthorizationFn
 }
 
 func NewApplication() *Application {
@@ -148,6 +152,7 @@ func (a *Application) Create(ctx context.Context) error {
 	}
 
 	// web stack
+	a.setupAuthorization(ctx)
 	a.createHealthController(ctx)
 	a.createSwaggerController(ctx)
 	a.createMetricsController(ctx)
@@ -380,25 +385,37 @@ func (a *Application) createSwaggerController(_ context.Context) {
 }
 
 func (a *Application) createMetricsController(_ context.Context) {
-	a.MetricsCtl = controller.NewMetricsController(
-		a.GitHubClient,
-		a.ApplicationCfg.GitHubAppID,
-		a.ApplicationCfg.GitHubAppInstallationID,
-	)
+	a.MetricsCtl = controller.NewMetricsController()
 }
 
-func (a *Application) createProfilerController(_ context.Context) {
-	a.ProfilerCtl = controller.NewProfilerController()
+func (a *Application) createProfilerController(ctx context.Context) {
+	a.ProfilerCtl = controller.NewProfilerController(a.AuthorizationFns)
 }
 
 func (a *Application) createV1Controller(_ context.Context) {
 	a.V1Ctl = controller.NewV1Controller(
 		a.Clock,
+		a.AuthorizationFns,
 		a.HelmChartProvider,
 		a.HelmChartRenderer,
 		a.KustomizationProvider,
 		a.KustomizationRenderer,
 	)
+}
+
+func (a *Application) setupAuthorization(ctx context.Context) {
+	if a.AuthorizationFns != nil {
+		return
+	}
+	if a.ApplicationCfg.AuthBasicUsername == "" {
+		aulogging.Logger.Ctx(ctx).Warn().Print("AUTH_BASIC_USERNAME and AUTH_BASIC_PASSWORD are not configured, " +
+			"the REST API is accessible without authentication and the profiler is disabled")
+		return
+	}
+	a.AuthorizationFns = []auth.AuthorizationFn{auth.AllowBasicAuthUser(auth.AllowBasicAuthUserOptions{
+		Username: a.ApplicationCfg.AuthBasicUsername,
+		Password: a.ApplicationCfg.AuthBasicPassword,
+	})}
 }
 
 func (a *Application) createServer(ctx context.Context) error {
