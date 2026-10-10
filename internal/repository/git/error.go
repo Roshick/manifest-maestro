@@ -34,3 +34,22 @@ func NewRepositoryReferenceNotFoundError(
 		gitReference:  gitReference,
 	}
 }
+
+// RepositoryURLInvalidError indicates a repository url that is malformed or does not point to a permitted host.
+type RepositoryURLInvalidError struct {
+	inner error
+}
+
+func (e *RepositoryURLInvalidError) Error() string {
+	return e.inner.Error()
+}
+
+func (e *RepositoryURLInvalidError) Unwrap() error {
+	return e.inner
+}
+
+func NewRepositoryURLInvalidError(inner error) *RepositoryURLInvalidError {
+	return &RepositoryURLInvalidError{
+		inner: inner,
+	}
+}
