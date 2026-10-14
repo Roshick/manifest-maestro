@@ -48,6 +48,10 @@ type ApplicationConfig struct {
 	GitHubAppInstallationID int64          `env:"GITHUB_APP_INSTALLATION_ID"`
 	GitHubAppPrivateKey     rsa.PrivateKey `env:"GITHUB_APP_PRIVATE_KEY"`
 
+	// AuthBasicUsername and AuthBasicPassword enable basic authentication for the REST API if both are set.
+	AuthBasicUsername string `env:"AUTH_BASIC_USERNAME"`
+	AuthBasicPassword string `env:"AUTH_BASIC_PASSWORD"`
+
 	SynchronizationMethod        SynchronizationMethod `env:"SYNCHRONIZATION_METHOD"         envDefault:"MEMORY"`
 	SynchronizationRedisURL      string                `env:"SYNCHRONIZATION_REDIS_URL"`
 	SynchronizationRedisPassword string                `env:"SYNCHRONIZATION_REDIS_PASSWORD"`
@@ -58,6 +62,16 @@ func NewApplicationConfig() *ApplicationConfig {
 }
 
 func (c *ApplicationConfig) ObtainValuesFromEnv() error {
+	if err := c.parseEnv(); err != nil {
+		return err
+	}
+	if (c.AuthBasicUsername == "") != (c.AuthBasicPassword == "") {
+		return fmt.Errorf("AUTH_BASIC_USERNAME and AUTH_BASIC_PASSWORD must either both be set or both be empty")
+	}
+	return nil
+}
+
+func (c *ApplicationConfig) parseEnv() error {
 	return env.ParseWithOptions(c, env.Options{
 		FuncMap: map[reflect.Type]env.ParserFunc{
 			reflect.TypeOf(rsa.PrivateKey{}): func(v string) (any, error) {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Roshick/go-autumn-web/auth"
 	"github.com/Roshick/go-autumn-web/logging"
 	"github.com/Roshick/go-autumn-web/validation"
 	"github.com/Roshick/manifest-maestro/internal/service/helm"
@@ -16,8 +17,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// maxRequestBodySize limits request bodies, which mainly consist of values and manifest injections.
+const maxRequestBodySize = 32 << 20
+
 type V1Controller struct {
-	clock Clock
+	clock   Clock
+	authFns []auth.AuthorizationFn
 
 	helmChartProvider     *helm.ChartProvider
 	helmChartRenderer     *helm.ChartRenderer
@@ -29,8 +34,11 @@ type Clock interface {
 	Now() time.Time
 }
 
+// NewV1Controller creates the controller for the REST API. Requests are only authorized if authFns is
+// non-empty; otherwise the API is accessible without authentication.
 func NewV1Controller(
 	clock Clock,
+	authFns []auth.AuthorizationFn,
 	helmChartProvider *helm.ChartProvider,
 	helmChartRenderer *helm.ChartRenderer,
 	kustomizationProvider *kustomize.KustomizationProvider,
@@ -38,6 +46,7 @@ func NewV1Controller(
 ) *V1Controller {
 	return &V1Controller{
 		clock:                 clock,
+		authFns:               authFns,
 		helmChartProvider:     helmChartProvider,
 		helmChartRenderer:     helmChartRenderer,
 		kustomizationProvider: kustomizationProvider,
@@ -54,12 +63,21 @@ func (c *V1Controller) WireUp(_ context.Context, r chi.Router) {
 
 	r.Group(func(r chi.Router) {
 		r.Use(logging.NewRequestLoggerMiddleware(nil))
+		if len(c.authFns) > 0 {
+			r.Use(auth.NewAuthorizationMiddleware(&auth.AuthorizationMiddlewareOptions{
+				AuthorizationFns: c.authFns,
+				ErrorResponse: &APIError{StatusCode: http.StatusUnauthorized, Error: openapi.Error{
+					Title: utils.Ptr("Unauthorized"),
+				}},
+			}))
+		}
+		r.Use(limitRequestBodySize)
 		r.Route("/rest/api/v1", func(r chi.Router) {
 			r.Route("/helm/actions", func(r chi.Router) {
 				r.With(validation.NewContextRequestBodyMiddleware[openapi.HelmListChartsAction](malformedBodyOptions)).
 					Post("/list-charts", c.helmActionsListCharts)
 				r.With(validation.NewContextRequestBodyMiddleware[openapi.HelmListChartVersionsAction](malformedBodyOptions)).
-					Post("/list-charts", c.helmActionsListChartVersions)
+					Post("/list-chart-versions", c.helmActionsListChartVersions)
 				r.With(validation.NewContextRequestBodyMiddleware[openapi.HelmGetChartMetadataAction](malformedBodyOptions)).
 					Post("/get-chart-metadata", c.helmActionsGetChartMetadata)
 				r.With(validation.NewContextRequestBodyMiddleware[openapi.HelmRenderChartAction](malformedBodyOptions)).
@@ -154,5 +172,12 @@ func (c *V1Controller) kustomizeRenderKustomization(w http.ResponseWriter, r *ht
 
 	render.JSON(w, r, openapi.KustomizeRenderKustomizationActionResponse{
 		Manifests: manifests,
+	})
+}
+
+func limitRequestBodySize(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+		next.ServeHTTP(w, r)
 	})
 }

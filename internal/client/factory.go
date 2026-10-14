@@ -2,8 +2,10 @@ package client
 
 import (
 	"crypto/rsa"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/rehttp"
@@ -66,10 +68,28 @@ func (f *Factory) NewHTTPClient(clientName string, opts *HTTPClientOptions) (*ht
 	rt = otelhttp.NewTransport(rt, otelhttp.WithServerName(clientName))
 	rt = tracing.NewRequestIDHeaderTransport(rt, nil)
 
-	return &http.Client{
+	httpClient := &http.Client{
 		Transport: rt,
 		Timeout:   opts.Timeout,
-	}, nil
+	}
+	if opts.BasicAuthOptions != nil {
+		httpClient.CheckRedirect = rejectCrossOriginRedirects
+	}
+	return httpClient, nil
+}
+
+const maxRedirects = 10
+
+// rejectCrossOriginRedirects prevents leaking basic auth credentials: the basic auth transport adds them to
+// every request, including redirected ones, so net/http's stripping of sensitive headers does not apply.
+func rejectCrossOriginRedirects(req *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+	}
+	if !strings.EqualFold(req.URL.Scheme, via[0].URL.Scheme) || !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+		return errors.New("refusing to follow cross-origin redirect of authenticated client")
+	}
+	return nil
 }
 
 type GitHubClientOptions struct {
