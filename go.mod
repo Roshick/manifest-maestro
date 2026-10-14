@@ -20,7 +20,7 @@ require (
 	github.com/google/go-github/v92 v92.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mitchellh/copystructure v1.2.0
-	github.com/prometheus/client_golang v1.24.1
+	github.com/prometheus/client_golang v1.25.0
 	github.com/riandyrn/otelchi v0.12.3
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/http-swagger/v2 v2.0.3-0.20250902111949-1340604bd9f5
@@ -29,7 +29,6 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.47.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.47.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.69.0
-	go.opentelemetry.io/otel/metric v1.47.0
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/sdk/metric v1.47.0
 	golang.org/x/sync v0.23.0
@@ -143,6 +142,7 @@ require (
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
+	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
