@@ -47,3 +47,6 @@ nb-configuration.xml
 # Project specific
 .env
 node_modules/
+
+# Performance test scenarios (may contain non-public data)
+test/resources/perf/

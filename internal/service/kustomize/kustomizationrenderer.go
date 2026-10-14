@@ -2,13 +2,13 @@ package kustomize
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	openapi "github.com/Roshick/manifest-maestro-api"
 	"sigs.k8s.io/kustomize/api/krusty"
-	"sigs.k8s.io/yaml"
 )
 
 type KustomizationRenderer struct{}
@@ -52,15 +52,18 @@ func (k *KustomizationRenderer) render(
 			return nil, fmt.Errorf("filename cannot contain %s", kustomization.fileSystem.Separator)
 		}
 
-		yamlDocs := make([]string, 0)
-		for _, manifest := range injection.Manifests {
-			yamlBytes, innerErr := yaml.Marshal(manifest.Content)
+		// JSON is valid YAML and much cheaper to produce than YAML
+		var fileContent []byte
+		for i, manifest := range injection.Manifests {
+			if i > 0 {
+				fileContent = append(fileContent, "\n---\n"...)
+			}
+			jsonBytes, innerErr := json.Marshal(manifest.Content)
 			if innerErr != nil {
 				return nil, innerErr
 			}
-			yamlDocs = append(yamlDocs, string(yamlBytes))
+			fileContent = append(fileContent, jsonBytes...)
 		}
-		fileContent := []byte(strings.Join(yamlDocs, "---\n"))
 
 		if err := kustomization.fileSystem.WriteFile(
 			kustomization.fileSystem.Join(kustomization.targetPath, injection.FileName),
@@ -81,15 +84,12 @@ func (k *KustomizationRenderer) render(
 
 	parsedManifests := make([]openapi.Manifest, 0)
 	for _, content := range manifests.Resources() {
-		contentBytes, innerErr := content.AsYAML()
+		// decodes the YAML node directly instead of converting it to YAML text and back
+		parsedContent, innerErr := content.Map()
 		if innerErr != nil {
 			return nil, innerErr
 		}
-		parsedContent := make(map[string]any)
-		if innerErr = yaml.Unmarshal(contentBytes, &parsedContent); innerErr != nil {
-			return nil, innerErr
-		}
-		if parsedContent == nil || len(parsedContent) == 0 {
+		if len(parsedContent) == 0 {
 			continue
 		}
 		parsedManifests = append(parsedManifests, openapi.Manifest{

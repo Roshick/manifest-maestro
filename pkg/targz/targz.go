@@ -93,6 +93,7 @@ func Extract(ctx context.Context, fileSystem *filesystem.FileSystem, sourceReade
 	}()
 	tr := tar.NewReader(gzr)
 
+	var buf []byte
 	for {
 		header, innerErr := tr.Next()
 		if errors.Is(innerErr, io.EOF) {
@@ -103,25 +104,20 @@ func Extract(ctx context.Context, fileSystem *filesystem.FileSystem, sourceReade
 		}
 
 		filePath := fileSystem.Join(targetPath, header.Name)
-		if filePath != targetPath && !strings.HasPrefix(filePath, strings.TrimSuffix(targetPath, fileSystem.Separator)+fileSystem.Separator) {
-			return fmt.Errorf("failed to extract file '%s': path escapes target directory '%s'", header.Name, targetPath)
+		if filePath != targetPath &&
+			!strings.HasPrefix(filePath, strings.TrimSuffix(targetPath, fileSystem.Separator)+fileSystem.Separator) {
+			return fmt.Errorf(
+				"failed to extract file '%s': path escapes target directory '%s'",
+				header.Name,
+				targetPath,
+			)
 		}
 		switch header.Typeflag {
 		case tar.TypeDir:
 			continue
 		case tar.TypeReg:
-			if innerErr2 := fileSystem.MkdirAll(fileSystem.Dir(filePath)); innerErr2 != nil {
-				return innerErr2
-			}
-			file, innerErr2 := fileSystem.Create(filePath)
-			if innerErr2 != nil {
-				return innerErr2
-			}
-			if _, innerErr2 = io.Copy(file, tr); innerErr2 != nil {
-				return innerErr2
-			}
-			if innerErr2 = file.Close(); innerErr2 != nil {
-				aulogging.Logger.Ctx(ctx).Warn().WithErr(innerErr2).Printf("failed to close '%s'", filePath)
+			if buf, innerErr = extractRegularFile(fileSystem, tr, header.Size, filePath, buf); innerErr != nil {
+				return innerErr
 			}
 		default:
 			return fmt.Errorf("failed to extract file '%s' of unsupported type from '%s'", header.Name, targetPath)
@@ -129,6 +125,24 @@ func Extract(ctx context.Context, fileSystem *filesystem.FileSystem, sourceReade
 	}
 
 	return nil
+}
+
+// extractRegularFile reads the current tar entry into buf (grown as needed) and returns it for reuse.
+// Reading the exact size and writing once avoids a copy buffer per file and repeated slice growth.
+func extractRegularFile(
+	fileSystem *filesystem.FileSystem, tr *tar.Reader, size int64, filePath string, buf []byte,
+) ([]byte, error) {
+	if err := fileSystem.MkdirAll(fileSystem.Dir(filePath)); err != nil {
+		return buf, err
+	}
+	if int64(cap(buf)) < size {
+		buf = make([]byte, size)
+	}
+	buf = buf[:size]
+	if _, err := io.ReadFull(tr, buf); err != nil {
+		return buf, err
+	}
+	return buf, fileSystem.WriteFile(filePath, buf)
 }
 
 // CompressFromBilly compresses a billy filesystem directly into a tar.gz stream,
