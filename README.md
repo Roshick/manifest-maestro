@@ -1,337 +1,300 @@
 # manifest-maestro
 
-One service to fetch, compose, and render Kubernetes manifests from Helm charts & Kustomizations with caching, observability, and a clean JSON/OpenAPI interface.
+[![Build](https://github.com/Roshick/manifest-maestro/actions/workflows/build.yaml/badge.svg)](https://github.com/Roshick/manifest-maestro/actions/workflows/build.yaml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
-## Status & Badges (placeholders)
-- Build: ![build](https://img.shields.io/badge/build-passing-brightgreen)  
-- Go Version: 1.25  
-- Coverage: _coming soon_  
-- License: MIT  
-- Release: _coming soon_  
-- Docker Image: _coming soon_  
-- Go Report Card: _coming soon_  
-- OpenAPI: `GET /swagger-ui/api/openapi.yaml`
+An HTTP service that fetches Helm charts and Kustomizations from Git repositories, Helm chart repositories and OCI
+registries, and renders them into Kubernetes manifests. Remote artifacts are cached, and the API is described by an
+OpenAPI spec.
 
-## Motivation
-Platform & infra teams often need consistent, fast, reproducible Kubernetes manifest generation for CI pipelines, previews, and policy checks. Combining Helm and Kustomize sources (including remote Git and OCI/image-backed Helm repositories) reliably is non‑trivial. `manifest-maestro` centralizes retrieval, dependency handling, value merging, rendering, and uniform error responses with optional Redis synchronization for horizontal scaling.
+It is built for CI pipelines, previews and policy checks that need fast, reproducible manifest rendering without
+running `helm`/`kustomize` binaries and managing credentials in every job.
 
-## Key Features
-- Render Helm charts (from HTTP/HTTPS repositories, OCI registries, or Git paths)
-- Render Kustomizations from Git repositories (with optional path scoping)
-- Merge Helm values from multiple sources: complex values (structured), value files, flat and string values
-- Inject arbitrary YAML manifests into Kustomize render pipeline
-- Dependency resolution for Helm chart sub‑charts including remote fetch of missing dependencies
-- Pluggable Helm getter providers via `HELM_HOST_PROVIDERS` env var (HTTP(S) + Basic Auth, OCI)
-- Caching layers (Git repositories, Helm indexes, Helm chart tarballs) with time‑based TTLs
-- Uniform JSON error model & OpenAPI documented API
-- Health (readiness/liveness), metrics (Prometheus), profiling (`/debug/pprof`), and tracing (OpenTelemetry)
-- GitHub App authentication for private Git repository access (repositories on github.com only)
-- Structured logging (plain or JSON) with attribute renaming and UTC timestamp transformer
+## Features
 
-## Architecture Overview
-Layered composition:
-```
-main.go → wiring.Application
-  ├─ bootstrap: logging, config, telemetry
-  ├─ repositories: GitHubClient, Git, HelmRemote
-  ├─ services: GitRepositoryCache, HelmIndexCache, HelmChartCache,
-  │            HelmChartProvider, HelmChartRenderer,
-  │            KustomizationProvider, KustomizationRenderer
-  └─ web: chi Router + middlewares (request id, tracing, metrics, panic recovery)
-        controllers: Health, Metrics, Profiler, Swagger, V1 (Helm/Kustomize actions)
-```
-Caching + provider flow (Helm chart path example):
-```
-V1Controller → ChartProvider → (GitRepositoryCache OR HelmChartCache + HelmIndexCache) → HelmRemote → Render (ChartRenderer)
-```
-Kustomize flow:
-```
-V1Controller → KustomizationProvider → GitRepositoryCache → KustomizationRenderer
-```
+- Render Helm charts from HTTP(S) chart repositories, OCI registries or paths in Git repositories
+- Render Kustomizations from paths in Git repositories, optionally injecting additional manifests
+- Merge Helm values from structured values, value files, `--set`-style and `--set-string`-style values
+- Resolve chart dependencies, fetching missing sub-charts from their repositories
+- Per-host Helm getter configuration with basic auth (`HELM_HOST_PROVIDERS`)
+- Private GitHub repositories via GitHub App authentication
+- Caching of Git repositories, Helm repository indexes and charts, in memory or in Redis (shared across replicas,
+  with automatic fallback to memory when Redis is unavailable)
+- Health checks, Prometheus metrics, OpenTelemetry tracing, pprof and structured logging
 
-## Folder Structure
-- `main.go` – entrypoint (loads `.env`, runs application wiring)
-- `internal/wiring` – dependency graph construction
-- `internal/config` – environment driven configuration & parsing (application & logging)
-- `internal/repository` – remote connectors (git, helmremote)
-- `internal/service` – business logic: caching, Helm & Kustomize providers/renderers
-- `internal/web` – server, controllers, middleware wiring
-- `internal/utils` – helper utilities (pointers, deep merge, etc.)
-- `pkg/filesystem`, `pkg/targz` – lightweight in‑memory filesystem + tar.gz compress/extract helpers
-- `test/mock` – mocks for clock/git/helmremote
-- `Dockerfile` – multi‑stage minimal container build (scratch)
-- `compose.yaml` – Redis service for cache synchronization
-- `LICENSE` – MIT
+## Quick start
 
-## Configuration (Environment Variables)
-Application (from `ApplicationConfig`):
-- `APPLICATION_NAME` (default: `manifest-maestro`)
-- `SERVER_ADDRESS` (default empty → binds on all interfaces when combined with port)
-- `SERVER_PRIMARY_PORT` (default: `8080`)
-- `HELM_DEFAULT_RELEASE_NAME` (default: `RELEASE-NAME`)
-- `HELM_DEFAULT_KUBERNETES_API_VERSIONS` (JSON array default: `[]`)
-- `HELM_DEFAULT_KUBERNETES_NAMESPACE` (default: `default`)
-- `HELM_HOST_PROVIDERS` – JSON object mapping hostnames to lists of Helm getter providers used when talking to that host.
-  - Shape: `{ "<host>": [ { "type": "http" | "https" | "oci", "schemes": ["..."], "basicAuth": { ... } } ] }`.
-  - `type` (required):
-    - `"http"` or `"https"` → HTTP(S) chart repositories (defaults `schemes` to `["http","https"]` when omitted or empty).
-    - `"oci"` → OCI registries (defaults `schemes` to `["oci"]` when omitted or empty).
-  - `schemes` (optional): list of URL schemes this provider should handle for the given host (e.g. `["https"]`, `["oci"]`).
-  - `basicAuth` (optional):
-    - `username` / `password`: literal credentials.
-    - `usernameEnvVar` / `passwordEnvVar`: names of environment variables whose values will be read at runtime.
-    - If either username or password resolves to an empty string, no basic auth is configured for that provider.
-  - Invalid JSON or unsupported `type` values will cause startup to fail with an `invalid HELM_HOST_PROVIDERS` error.
-  - When unset or `{}`, only Helm's default providers are used (no host-specific overrides).
+Requirements: Go (version in [`go.mod`](go.mod); `mise install` sets it up via [`mise.toml`](mise.toml)), Docker
+optional.
 
-  Example: HTTP(S) chart repo with env-based basic auth
-  ```json
-  {
-    "charts.example.com": [
-      {
-        "type": "http",
-        "basicAuth": {
-          "usernameEnvVar": "HELM_USER",
-          "passwordEnvVar": "HELM_PASS"
-        }
-      }
-    ]
-  }
-  ```
-
-  Example: OCI registry with explicit schemes and inline credentials
-  ```json
-  {
-    "oci-registry.example.com": [
-      {
-        "type": "oci",
-        "schemes": ["oci"],
-        "basicAuth": {
-          "username": "robot",
-          "password": "s3cr3t"
-        }
-      }
-    ]
-  }
-  ```
-
-  Example: single host with separate HTTP and OCI providers
-  ```json
-  {
-    "artifacts.example.com": [
-      {
-        "type": "http",
-        "schemes": ["https"],
-        "basicAuth": {
-          "usernameEnvVar": "HELM_HTTP_USER",
-          "passwordEnvVar": "HELM_HTTP_PASS"
-        }
-      },
-      {
-        "type": "oci",
-        "schemes": ["oci"],
-        "basicAuth": {
-          "usernameEnvVar": "HELM_OCI_USER",
-          "passwordEnvVar": "HELM_OCI_PASS"
-        }
-      }
-    ]
-  }
-  ```
-- `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY` (PEM for GitHub App auth)
-- `SYNCHRONIZATION_METHOD` (`MEMORY` | `REDIS`)
-- `SYNCHRONIZATION_REDIS_URL` (e.g. `redis://localhost:6379`)
-- `SYNCHRONIZATION_REDIS_PASSWORD`
-- `AUTH_BASIC_USERNAME`, `AUTH_BASIC_PASSWORD` – enable basic authentication for the REST API (both or none)
-
-Logging (from `LoggingConfig`):
-- `LOG_STYLE` (`PLAIN` | `JSON`)
-- `LOG_LEVEL` (`DEBUG`, `INFO`, `WARN`, `ERROR`)
-- `LOG_ATTRIBUTE_KEY_MAPPINGS` (JSON map; remaps slog keys → structured output keys)
-- `LOG_TIME_TRANSFORMER` (`UTC` | `ZERO`)
-
-Telemetry (OTLP exporters) rely on standard OpenTelemetry env vars if set (e.g. `OTEL_EXPORTER_OTLP_ENDPOINT`).
-
-## Quick Start
-Prerequisites:
-- Go >= 1.25
-- Docker (optional)
-- Redis (optional for REDIS synchronization)
-
-Local run:
 ```bash
 git clone https://github.com/Roshick/manifest-maestro.git
 cd manifest-maestro
-# optional: create .env
-cat > .env <<'EOF'
-SERVER_ADDRESS=0.0.0.0
-SERVER_PRIMARY_PORT=8080
-SYNCHRONIZATION_METHOD=MEMORY
-LOG_STYLE=PLAIN
-LOG_LEVEL=INFO
-EOF
-
-go build ./...
-./main
+go build -o manifest-maestro .
+HELM_HOST_PROVIDERS='{"prometheus-community.github.io":[{"type":"https"}],"github.com":[{"type":"https"}]}' \
+  ./manifest-maestro
 ```
 
-Docker build & run:
+A `.env` file in the working directory is loaded on startup if present (it is git-ignored).
+
+With Docker, either use the published image `ghcr.io/roshick/manifest-maestro` or build it locally:
+
 ```bash
-docker build -t manifest-maestro:dev .
-docker run --rm -p 8080:8080 manifest-maestro:dev
+docker build -t manifest-maestro .
+docker run --rm -p 8080:8080 manifest-maestro
 ```
 
-Docker Compose (Redis cache):
-```bash
-docker compose up -d
-# set SYNCHRONIZATION_METHOD=REDIS and SYNCHRONIZATION_REDIS_URL=redis://:eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81@localhost:6379
-```
+Then open the Swagger UI at http://localhost:8080/swagger-ui/index.html.
 
-## API Usage Examples
-Health:
-```bash
-curl -s localhost:8080/health/liveness | jq
-curl -s localhost:8080/health/readiness | jq
-```
-OpenAPI & Swagger UI:
-```bash
-curl -s localhost:8080/swagger-ui/api/openapi.yaml
-# Browser: http://localhost:8080/swagger-ui/index.html
-```
-Metrics (Prometheus):
-```bash
-curl -s localhost:8080/metrics | head
-```
-Render Helm chart from repository (HTTP):
+## API
+
+All actions are `POST` requests with a JSON body. The OpenAPI spec is served at `GET /swagger-ui/api/openapi.yaml`
+and published as the Go module [`manifest-maestro-api`](https://github.com/Roshick/manifest-maestro-api), which also
+provides a generated Go client.
+
+| Endpoint | Description |
+|---|---|
+| `POST /rest/api/v1/helm/actions/render-chart` | Render a Helm chart |
+| `POST /rest/api/v1/helm/actions/get-chart-metadata` | Return a chart's default values |
+| `POST /rest/api/v1/kustomize/actions/render-kustomization` | Render a Kustomization |
+| `POST /rest/api/v1/helm/actions/list-charts` | Not implemented yet (returns 500) |
+| `POST /rest/api/v1/helm/actions/list-chart-versions` | Not implemented yet (returns 500) |
+
+### Chart references
+
+A Helm chart `reference` is one of:
+
+- Helm chart repository (HTTP(S) or OCI): `{"repositoryURL": "...", "chartName": "...", "chartVersion": "..."}`;
+  `chartVersion` is optional for HTTP(S) chart repositories, where it defaults to the latest version.
+- Git repository path: `{"repositoryURL": "https://github.com/<owner>/<repo>", "reference": "<branch|tag|commit>", "path": "charts/app"}`;
+  `path` is optional and defaults to the repository root.
+
+Kustomizations always use a Git repository path reference.
+
+### Examples
+
+Render a chart from a chart repository:
+
 ```bash
 curl -s -X POST localhost:8080/rest/api/v1/helm/actions/render-chart \
- -H 'Content-Type: application/json' \
- -d '{
-  "reference": {"helmChartRepositoryChartReference": {"repositoryURL": "https://charts.bitnami.com/bitnami", "chartName": "nginx"}},
-  "parameters": {"releaseName": "example", "namespace": "demo", "valuesFlat": ["service.type=ClusterIP"]}
- }' | jq '.manifests[0]'
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reference": {
+      "repositoryURL": "https://prometheus-community.github.io/helm-charts",
+      "chartName": "prometheus-node-exporter",
+      "chartVersion": "4.47.0"
+    },
+    "parameters": {
+      "releaseName": "node-exporter",
+      "namespace": "monitoring",
+      "valuesFlat": ["service.port=9101"]
+    }
+  }' | jq '.manifests[].content.kind'
 ```
-Render Helm chart from Git path:
+
+Get the default values of a chart stored in a Git repository:
+
 ```bash
 curl -s -X POST localhost:8080/rest/api/v1/helm/actions/get-chart-metadata \
- -H 'Content-Type: application/json' \
- -d '{
-  "reference": {"gitRepositoryPathReference": {"repositoryURL": "https://github.com/org/repo.git", "reference": "main", "path": "charts/app"}}
- }'
+  -H 'Content-Type: application/json' \
+  -d '{"reference": {"repositoryURL": "https://github.com/org/repo", "reference": "main", "path": "charts/app"}}' \
+  | jq '.defaultValues'
 ```
-Render Kustomization from Git path with manifest injection:
+
+Render a Kustomization and inject an extra manifest:
+
 ```bash
 curl -s -X POST localhost:8080/rest/api/v1/kustomize/actions/render-kustomization \
- -H 'Content-Type: application/json' \
- -d '{
-  "reference": {"gitRepositoryPathReference": {"repositoryURL": "https://github.com/org/repo.git", "reference": "main", "path": "deploy/overlays/dev"}},
-  "parameters": {"manifestInjections": [{"fileName": "extra.yaml", "manifests": [{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"injected"},"data":{"key":"value"}}]}]}
- }' | jq '.manifests | length'
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reference": {"repositoryURL": "https://github.com/org/repo", "reference": "main", "path": "deploy/overlays/dev"},
+    "parameters": {
+      "manifestInjections": [{
+        "fileName": "extra.yaml",
+        "manifests": [{"content": {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "injected"}, "data": {"key": "value"}}}]
+      }]
+    }
+  }' | jq '.manifests | length'
 ```
-Error sample (chart not found): returns JSON:
+
+Responses contain `manifests` (each with `content` and, where known, `source`); `render-chart` additionally returns
+`metadata` with the merged values, chart metadata and the Kubernetes/Helm versions used.
+
+### Helm render parameters
+
+| Parameter | Description |
+|---|---|
+| `releaseName`, `namespace` | Default to `HELM_DEFAULT_RELEASE_NAME` / `HELM_DEFAULT_KUBERNETES_NAMESPACE` |
+| `kubeVersion`, `apiVersions` | Capabilities exposed to templates; `apiVersions` defaults to `HELM_DEFAULT_KUBERNETES_API_VERSIONS` |
+| `complexValues` | Structured values object |
+| `valueFiles` | Value files relative to the chart; missing files fail unless `ignoreMissingValueFiles` is `true` |
+| `values`, `valuesFlat` | Like `helm --set` (map of `key: value`, or list of `key=value`) |
+| `stringValues`, `stringValuesFlat` | Like `helm --set-string` |
+| `includeCRDs`, `includeHooks` | Include CRDs / hook manifests in the output (default `true`) |
+
+Values are merged in this order, later sources overriding earlier ones: `complexValues`, `valueFiles` (in the given
+order), `values`/`valuesFlat`, `stringValues`/`stringValuesFlat`. Chart defaults apply underneath all of them.
+
+### Errors
+
+Errors are returned as JSON with an appropriate HTTP status, a `title` (e.g. `Helm repository chart not found`,
+`Git repository reference not found`, `Malformed body`) and usually a `detail`:
+
 ```json
-{"title":"Helm repository chart not found"}
+{"title": "Helm repository provider missing", "detail": "missing provider for 'charts.example.com' with scheme 'https'"}
 ```
 
-## Endpoints Summary
-- `GET /health/liveness`, `GET /health/readiness`
-- `GET /metrics`
-- `GET /debug/*` (pprof profiler, requires basic authentication; unavailable if `AUTH_BASIC_*` is not set)
-- `GET /swagger-ui/*` (Swagger UI assets & OpenAPI spec)
-- `POST /rest/api/v1/helm/actions/list-charts` (currently returns 500 – roadmap item)
-- `POST /rest/api/v1/helm/actions/list-chart-versions` (currently returns 500 – roadmap item)
-- `POST /rest/api/v1/helm/actions/get-chart-metadata`
-- `POST /rest/api/v1/helm/actions/render-chart`
-- `POST /rest/api/v1/kustomize/actions/render-kustomization`
+## Configuration
 
-## Caching Strategy
-- Git repositories: 5m TTL – keyed by `repositoryURL|commitHash`
-- Helm repository indexes: 5m TTL – keyed by repository URL
-- Helm charts (OCI): 5m TTL – keyed by fully qualified OCI reference (including version tag)
-- Helm charts (HTTP): 15m TTL – keyed by `chartURL|digest`
-Mechanism: abstraction from `go-autumn-synchronisation` offering in‑memory or Redis (select via `SYNCHRONIZATION_METHOD`). Invalidation: time‑based only (no manual purge API yet). Git commit resolution ensures immutability -> safe longer TTLs.
+All configuration is read from environment variables.
 
-## Helm Value Merging Order
-1. Structured `complexValues`
-2. Value files (merged in provided order; later overrides earlier) – missing files error unless `ignoreMissingValueFiles=true`
-3. Simple values & flattened pairs (`values`, `valuesFlat`) using Helm's precedence
-4. String values (`stringValues`, `stringValuesFlat`) applied last
-CRDs & hooks included by default; disable with `{"includeCRDs": false}` or `{"includeHooks": false}`.
+### Server and Helm
 
-## Security Considerations
-- GitHub App private key loaded via `GITHUB_APP_PRIVATE_KEY` (ensure proper secret management)
-- REST API (`/rest/api/v1/*`) requires basic authentication if `AUTH_BASIC_USERNAME` and `AUTH_BASIC_PASSWORD` are set; without them it is unauthenticated and must not be reachable by untrusted clients
-- No CORS headers are sent, browsers cannot read API responses cross-origin
-- Request bodies are limited to 32 MiB
-- Input validation for request bodies (schema enforcement & malformed body handling)
-- Git repository URLs must point to github.com (`https://github.com/<owner>/<repo>`, `git@github.com:<owner>/<repo>` or `ssh://git@github.com/<owner>/<repo>`), so that the GitHub App token is never sent to other hosts
-- Kustomizations must not reference remote resources (http(s), ssh or git URLs); only files of the cloned repository are loaded
-- Remote code artifacts (Helm charts, Git repos) are fetched & executed only as data (no template execution outside Helm rendering). Review dependencies for supply chain integrity.
-- Use Redis AUTH (`SYNCHRONIZATION_REDIS_PASSWORD`) when using Redis
-- Run container as non‑root (enhancement pending – scratch base currently inherits root UID)
+| Variable | Default | Description |
+|---|---|---|
+| `APPLICATION_NAME` | `manifest-maestro` | Used in logs and traces |
+| `SERVER_ADDRESS` | *(all interfaces)* | Listen address |
+| `SERVER_PRIMARY_PORT` | `8080` | Listen port |
+| `HELM_DEFAULT_RELEASE_NAME` | `RELEASE-NAME` | Release name if none is given |
+| `HELM_DEFAULT_KUBERNETES_NAMESPACE` | `default` | Namespace if none is given |
+| `HELM_DEFAULT_KUBERNETES_API_VERSIONS` | `[]` | JSON array of API versions if none are given |
+| `HELM_HOST_PROVIDERS` | `{}` | Helm getters per host, see below |
 
-## Observability
-- Metrics: Prometheus format at `/metrics` includes request metrics
-- Tracing: OpenTelemetry spans via `otelchi` & `otelhttp` – configure OTLP endpoint with env vars
-- Profiling: `/debug/pprof` endpoint for CPU, heap, goroutine analysis
-- Structured logging: slog with customizable key mapping (e.g. `time` → `@timestamp`) and level control
+### Authentication
 
-## Development Guide
-Install tool versions (optional) with `mise` if configured in `mise.toml`.
-Run & iterate:
+| Variable | Description |
+|---|---|
+| `AUTH_BASIC_USERNAME`, `AUTH_BASIC_PASSWORD` | Enable basic auth for `/rest/api/v1/*` and `/debug/*`. Set both or neither. Without them the API is unauthenticated and the profiler is disabled. |
+| `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY` | GitHub App used to access Git repositories; the private key is a PEM-encoded PKCS#1 RSA key. Required for Git references. |
+
+### Helm host providers
+
+Charts can only be fetched from hosts listed in `HELM_HOST_PROVIDERS`; other hosts fail with
+`Helm repository provider missing`. The value is a JSON object mapping a host name to a list of providers:
+
+| Field | Description |
+|---|---|
+| `type` | Required. `http`/`https` for chart repositories, `oci` for OCI registries |
+| `schemes` | URL schemes handled by the provider. Defaults to `["http", "https"]` or `["oci"]` |
+| `basicAuth` | Optional `username`/`password`, or `usernameEnvVar`/`passwordEnvVar` naming environment variables to read them from. Ignored if either resolves to an empty string. |
+
+```json
+{
+  "charts.example.com": [
+    {"type": "https", "basicAuth": {"usernameEnvVar": "HELM_USER", "passwordEnvVar": "HELM_PASS"}}
+  ],
+  "registry.example.com": [
+    {"type": "oci", "basicAuth": {"usernameEnvVar": "OCI_USER", "passwordEnvVar": "OCI_PASS"}}
+  ]
+}
+```
+
+Invalid JSON or unknown types make startup fail.
+
+### Caching
+
+| Variable | Default | Description |
+|---|---|---|
+| `SYNCHRONIZATION_METHOD` | `MEMORY` | `MEMORY` (per instance) or `REDIS` (shared across instances) |
+| `SYNCHRONIZATION_REDIS_URL` | | Redis address as `host:port`, e.g. `localhost:6379` |
+| `SYNCHRONIZATION_REDIS_PASSWORD` | | Redis password, if required |
+
+### Logging and telemetry
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOG_STYLE` | `PLAIN` | `PLAIN` or `JSON` |
+| `LOG_LEVEL` | `INFO` | `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `PANIC`, `SILENT` |
+| `LOG_ATTRIBUTE_KEY_MAPPINGS` | ECS-style (`time` → `@timestamp`, `level` → `log.level`, ...) | JSON object renaming log attribute keys |
+| `LOG_TIME_TRANSFORMER` | `UTC` | `UTC`, or `ZERO` to replace timestamps with the zero time (useful for tests) |
+
+Traces are exported via OTLP/gRPC and configured with the standard `OTEL_*` variables
+(e.g. `OTEL_EXPORTER_OTLP_ENDPOINT`).
+
+## Caching
+
+| Cache | Key | TTL |
+|---|---|---|
+| Git repositories | repository URL + commit hash | 15 min |
+| Helm repository indexes | repository URL | 15 min |
+| Helm charts (HTTP) | chart URL + digest | 15 min |
+| Helm charts (OCI) | full OCI reference including tag | 5 min |
+
+Git references are resolved to a commit hash on every request, so new commits are picked up immediately. A repository
+index can be up to 15 minutes old, so newly published chart versions may take that long to appear. There is no manual
+invalidation.
+
+With `REDIS`, Redis is connected lazily and every call is limited to 3 seconds. If Redis is unreachable or failing,
+the service logs a warning, uses an in-memory cache with the same TTLs, and retries Redis every 30 seconds. Startup and
+requests therefore never depend on Redis being available.
+
+## Operations
+
+| Endpoint | Description |
+|---|---|
+| `GET /health/liveness`, `GET /health/readiness` | Health checks |
+| `GET /metrics` | Prometheus metrics |
+| `GET /debug/pprof/` | Go profiler; requires basic auth to be configured |
+| `GET /swagger-ui/index.html` | Swagger UI |
+
+The server shuts down gracefully on `SIGTERM`/`SIGINT`. Requests time out after 120 seconds; request bodies are
+limited to 32 MiB.
+
+## Security
+
+- Without `AUTH_BASIC_*` the REST API is unauthenticated; only expose it to trusted clients.
+- Git repository URLs must point to github.com (`https://github.com/<owner>/<repo>`, `git@github.com:<owner>/<repo>`
+  or `ssh://git@github.com/<owner>/<repo>`), so the GitHub App token is never sent to other hosts.
+- Kustomizations may only reference files inside the cloned repository; remote resources (HTTP(S), SSH, Git URLs) are
+  rejected.
+- Helm chart repository and registry credentials are only used for the hosts they are configured for.
+- No CORS headers are sent, so browsers cannot read API responses cross-origin.
+- The container image is based on `scratch` and currently runs as root.
+
+## Development
+
 ```bash
 go build ./...
+go vet ./...
 go test ./...
-GOLOG_LOG_LEVEL=debug ./main
 ```
-Suggested linters (add later): `golangci-lint run`.
-Redis setup for integration testing:
+
+Project layout:
+
+| Path | Contents |
+|---|---|
+| `main.go` | Entry point; loads `.env` and runs the application |
+| `internal/wiring` | Builds the dependency graph and runs the server |
+| `internal/config` | Environment configuration |
+| `internal/client` | HTTP and GitHub client factory |
+| `internal/repository` | Remote access: Git (`git`), Helm repositories and registries (`helmremote`) |
+| `internal/service/cache` | Caches for Git repositories, Helm indexes and charts |
+| `internal/service/helm`, `internal/service/kustomize` | Chart/Kustomization providers and renderers |
+| `internal/resilientcache` | Redis cache wrapper with in-memory fallback |
+| `internal/web` | Router, middlewares and controllers |
+| `pkg/filesystem`, `pkg/targz` | In-memory filesystem and tar.gz helpers |
+| `test/mock` | Mocks for caches, clock, Git and Helm remotes |
+| `test/perf` | Replay-based performance tests, see below |
+
+For a local Redis, run `docker compose up -d cache` and set `SYNCHRONIZATION_METHOD=REDIS` and
+`SYNCHRONIZATION_REDIS_URL=localhost:6379`.
+
+Performance tests replay recorded requests against the handler stack with in-memory remotes. Scenarios are placed
+in `test/resources/perf/<name>` (git-ignored); the format is documented in
+[`test/perf/perf_test.go`](test/perf/perf_test.go).
+
 ```bash
-docker compose up -d cache
-export SYNCHRONIZATION_METHOD=REDIS
-export SYNCHRONIZATION_REDIS_URL=redis://:eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81@localhost:6379
-./main
+go test -tags perf ./test/perf/ -run TestPerf -v -count=1
 ```
-Update OpenAPI (external module `manifest-maestro-api`): bump version in `go.mod` after regenerating spec upstream.
 
-## Testing
-- Mocks under `test/mock/*` for deterministic unit tests (git, helmremote, clock)
-- Focus service tests on provider/render behavior using injected caches
-- Add integration tests for value file precedence and manifest injections (ToDo: contribute more examples)
-
-## Performance Notes
-- Caching reduces redundant remote fetches (commit hashes & chart digests are immutable)
-- Helm dependency resolution may be CPU heavy for large charts; consider profiling if latency spikes
-- Value merging performs deep map merges – watch for very large nested structures
-- Potential future optimization: parallel fetch of Helm dependencies not already embedded
-
-## Roadmap
-- Implement `/helm/actions/list-charts`
-- Manual cache invalidation endpoints
-- Configurable TTLs via environment
-- RBAC / API tokens
-- Streaming responses for large manifest sets
-- More comprehensive e2e tests & benchmarks
+API changes are made in [`manifest-maestro-api`](https://github.com/Roshick/manifest-maestro-api); bump its version
+in `go.mod` afterwards.
 
 ## Contributing
-1. Fork & create feature branch (`feat/short-description`)
-2. Follow Conventional Commits (`feat:`, `fix:`) for clarity
-3. Add/adjust tests for any behavior change
-4. Ensure `go test ./...` passes and no lint regressions
-5. Submit PR with description & context (link related issues)
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, ...), since releases are created
+from them by semantic-release. Add tests for behavior changes and make sure `go test ./...` and `go vet ./...` pass.
 
 ## License
-MIT – see `LICENSE` file.
 
-## Acknowledgements
-- Helm project (chart rendering engine)
-- Kustomize project
-- Chi router & related middleware ecosystem
-- OpenTelemetry maintainers
-- go-git & supporting billy filesystem
-- Prometheus client library
-- GitHub API libraries & rate limit helpers
-- `go-autumn-*` libraries powering logging, web, synchronization
-
----
-Questions or ideas? Open an issue or start a discussion.
+[MIT](LICENSE.md)
