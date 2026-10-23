@@ -251,6 +251,8 @@ Error sample (chart not found): returns JSON:
 - Helm charts (HTTP): 15m TTL – keyed by `chartURL|digest`
 Mechanism: abstraction from `go-autumn-synchronisation` offering in‑memory or Redis (select via `SYNCHRONIZATION_METHOD`). Invalidation: time‑based only (no manual purge API yet). Git commit resolution ensures immutability -> safe longer TTLs.
 
+Redis resilience: with `SYNCHRONIZATION_METHOD=REDIS`, Redis is connected lazily and every Redis call is bounded by a 3s timeout. If Redis is unreachable or failing (e.g. at startup, or `NOREPLICAS` errors), the service falls back to a per‑pod in‑memory cache (honoring the same TTLs) and retries Redis every 30s. Startup and request handling therefore do not depend on Redis being available.
+
 ## Helm Value Merging Order
 1. Structured `complexValues`
 2. Value files (merged in provided order; later overrides earlier) – missing files error unless `ignoreMissingValueFiles=true`

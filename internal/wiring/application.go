@@ -11,6 +11,7 @@ import (
 	aucache "github.com/Roshick/go-autumn-synchronisation/pkg/cache"
 	"github.com/Roshick/go-autumn-web/auth"
 	"github.com/Roshick/manifest-maestro/internal/client"
+	"github.com/Roshick/manifest-maestro/internal/resilientcache"
 	"github.com/Roshick/manifest-maestro/internal/service/cache"
 	"github.com/Roshick/manifest-maestro/internal/web/controller"
 	"github.com/google/go-github/v92/github"
@@ -31,6 +32,11 @@ import (
 	"github.com/Roshick/manifest-maestro/internal/service/kustomize"
 	"github.com/Roshick/manifest-maestro/internal/web"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
+)
+
+const (
+	redisOperationTimeout = 3 * time.Second
+	redisCooldown         = 30 * time.Second
 )
 
 type Clock interface {
@@ -439,7 +445,17 @@ func (a *Application) createByteSliceCache(_ context.Context, cacheKey string) (
 	case config.SynchronizationMethodRedis:
 		redisURL := a.ApplicationCfg.SynchronizationRedisURL
 		redisPassword := a.ApplicationCfg.SynchronizationRedisPassword
-		return aucache.NewRedisCache[[]byte](redisURL, redisPassword, cacheKey)
+		return resilientcache.NewFallbackCache(
+			cacheKey,
+			func() (aucache.Cache[[]byte], error) {
+				return aucache.NewRedisCache[[]byte](redisURL, redisPassword, cacheKey)
+			},
+			resilientcache.NewMemoryCache[[]byte](),
+			resilientcache.Options{
+				OperationTimeout: redisOperationTimeout,
+				Cooldown:         redisCooldown,
+			},
+		), nil
 	default:
 		return aucache.NewMemoryCache[[]byte](), nil
 	}
