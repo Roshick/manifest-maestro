@@ -33,7 +33,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.47.0
 	golang.org/x/sync v0.24.0
 	helm.sh/helm/v4 v4.3.0
-	oras.land/oras-go/v2 v2.6.3
+	oras.land/oras-go/v2 v2.7.0
 	sigs.k8s.io/kustomize/api v0.21.2
 	sigs.k8s.io/kustomize/kyaml v0.21.2
 	sigs.k8s.io/yaml v1.6.0
