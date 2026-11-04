@@ -10,7 +10,7 @@ require (
 	github.com/Roshick/manifest-maestro-api v1.5.4
 	github.com/StephanHCB/go-autumn-logging v0.4.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
-	github.com/caarlos0/env/v11 v11.4.1
+	github.com/caarlos0/env/v11 v11.4.2
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/render v1.0.3
 	github.com/go-git/go-billy/v5 v5.9.2
