@@ -31,7 +31,7 @@ require (
 	go.opentelemetry.io/otel/exporters/prometheus v0.69.0
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/sdk/metric v1.47.0
-	golang.org/x/sync v0.24.0
+	golang.org/x/sync v0.25.0
 	helm.sh/helm/v4 v4.3.1
 	oras.land/oras-go/v2 v2.7.0
 	sigs.k8s.io/kustomize/api v0.21.2
