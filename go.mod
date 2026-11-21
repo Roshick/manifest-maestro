@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/PuerkitoBio/rehttp v1.4.0
-	github.com/Roshick/go-autumn-slog v0.5.2
+	github.com/Roshick/go-autumn-slog v0.5.3
 	github.com/Roshick/go-autumn-synchronisation v0.7.13
 	github.com/Roshick/go-autumn-web v1.0.13
 	github.com/Roshick/manifest-maestro-api v1.5.4
