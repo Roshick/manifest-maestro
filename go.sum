@@ -25,8 +25,8 @@ github.com/Roshick/go-autumn-slog v0.5.5 h1:IbCfwqYr5VC9ceWsDHBs4oVBcyEX5RKUcpzU
 github.com/Roshick/go-autumn-slog v0.5.5/go.mod h1:rLdUFlJ03Z3vkjYIk4f3XtMxtwqtDIz2LV4PE0/IurA=
 github.com/Roshick/go-autumn-synchronisation v0.7.14 h1:CEl0sOCN4ZQkLGygDyg6gjq4CnfUHG79aqL0O+pgoBg=
 github.com/Roshick/go-autumn-synchronisation v0.7.14/go.mod h1:JHttvpfXvxBsYvVV3iKCF2y0l/I0ZO1xnLnxk0hyLy0=
-github.com/Roshick/go-autumn-web v1.0.13 h1:TRMOEv835KkQi7NGfXyOGo9OvFuU3B1afLrmG0zvu+M=
-github.com/Roshick/go-autumn-web v1.0.13/go.mod h1:/54Ke3NMfKPf2PzWcanGpe1w9bmWGlVi/Y07VkzPUw4=
+github.com/Roshick/go-autumn-web v1.0.14 h1:wLa7dX5IQy48sRdAWMVQSIlwgSvTBNOkjpbRuOQtR5M=
+github.com/Roshick/go-autumn-web v1.0.14/go.mod h1:GGR1Tg4muh9MVsWoXcB8w/UbyhmPaf3DnqEgLryAADE=
 github.com/Roshick/manifest-maestro-api v1.5.4 h1:N/tnoDxhnwjzSpc2ZyMqcjNnSCAwPjJwKMTRWNKUxDc=
 github.com/Roshick/manifest-maestro-api v1.5.4/go.mod h1:DJis3X9clJWaskyXtFzqO1JOznsNMfb/YbAFxSncRVA=
 github.com/StephanHCB/go-autumn-logging v0.4.0 h1:/EC41JJBi1Ao8eFmx4jReokJsbKsRoMoGTaCJZ/Nins=
@@ -163,8 +163,8 @@ github.com/go-openapi/testify/v2 v2.6.0 h1:5PKH2HE7YJ/LuRPQGvSxBRlFXNQhSetBLlGAg
 github.com/go-openapi/testify/v2 v2.6.0/go.mod h1:SgsVHtfooshd0tublTtJ50FPKhujf47YRqauXXOUxfw=
 github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
 github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJAkT8=
-github.com/goccy/go-json v0.10.6 h1:p8HrPJzOakx/mn/bQtjgNjdTcN+/S6FcG2CTtQOrHVU=
-github.com/goccy/go-json v0.10.6/go.mod h1:oq7eo15ShAhp70Anwd5lgX2pLfOS3QCiwU/PULtXL6M=
+github.com/goccy/go-json v0.11.2 h1:jdZv93Tt4ioR8yW1CoNsvSxrcZlCXAUU1aZXN7gpXUA=
+github.com/goccy/go-json v0.11.2/go.mod h1:3NdmfEkZlB7YI5UFw/qdFKq8XN1aiWR0YyRPWZNQltY=
 github.com/gofri/go-github-pagination v1.0.1 h1:j5uJRx65i/Ta2M0QSgiPcyokY69JnCQglt4n9pspFhY=
 github.com/gofri/go-github-pagination v1.0.1/go.mod h1:Qij55Fb4fNPjam3SB+8cLnqp4pgR8RGMyIspYXcyHX0=
 github.com/gofri/go-github-ratelimit/v2 v2.0.2 h1:gS8wAS1jTmlWGdTjAM7KIpsLjwY1S0S/gKK5hthfSXM=
@@ -238,8 +238,8 @@ github.com/lestrrat-go/httpcc v1.0.1 h1:ydWCStUeJLkpYyjLDHihupbn2tYmZ7m22BGkcvZZ
 github.com/lestrrat-go/httpcc v1.0.1/go.mod h1:qiltp3Mt56+55GPVCbTdM9MlqhvzyuL6W/NMDA8vA5E=
 github.com/lestrrat-go/httprc/v3 v3.0.6 h1:4FpLQ18KK/ypPbVU3NLWJNRvH3kcYiqKqWfKGqNWxxI=
 github.com/lestrrat-go/httprc/v3 v3.0.6/go.mod h1:mSMtkZW92Z98M5YoNNztbRGxbXHql7tSitCvaxvo9l0=
-github.com/lestrrat-go/jwx/v3 v3.3.0 h1:OXcYvQOQ7cxWzeZ/Q9sYk8ABe/kCSI371WmuACiCT+4=
-github.com/lestrrat-go/jwx/v3 v3.3.0/go.mod h1:eIJhDcKHBwcgxqv8RiIylV67TVl1wJp/265IAHY1Db8=
+github.com/lestrrat-go/jwx/v3 v3.4.0 h1:2YSO4sfAj+M90XUuEJZsMibRNpoh1KXP1iL+C/tFebg=
+github.com/lestrrat-go/jwx/v3 v3.4.0/go.mod h1:jrZZIM3dgHB780ZrD/3H+ARR5ou4w3X3wFjWE+JWGMU=
 github.com/lestrrat-go/option/v2 v2.0.0 h1:XxrcaJESE1fokHy3FpaQ/cXW8ZsIdWcdFzzLOcID3Ss=
 github.com/lestrrat-go/option/v2 v2.0.0/go.mod h1:oSySsmzMoR0iRzCDCaUfsCzxQHUEuhOViQObyy7S6Vg=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de h1:9TO3cAIGXtEhnIaL+V+BEER86oLrvS+kWobKpbJuye0=
