@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/rehttp v1.4.0
 	github.com/Roshick/go-autumn-slog v0.5.5
 	github.com/Roshick/go-autumn-synchronisation v0.7.14
-	github.com/Roshick/go-autumn-web v1.0.13
+	github.com/Roshick/go-autumn-web v1.0.14
 	github.com/Roshick/manifest-maestro-api v1.5.4
 	github.com/StephanHCB/go-autumn-logging v0.4.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
@@ -84,7 +84,7 @@ require (
 	github.com/go-openapi/swag/typeutils v0.28.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.28.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/goccy/go-json v0.10.6 // indirect
+	github.com/goccy/go-json v0.11.2 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
@@ -105,7 +105,7 @@ require (
 	github.com/lestrrat-go/dsig-secp256k1 v1.0.0 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/httprc/v3 v3.0.6 // indirect
-	github.com/lestrrat-go/jwx/v3 v3.3.0 // indirect
+	github.com/lestrrat-go/jwx/v3 v3.4.0 // indirect
 	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
